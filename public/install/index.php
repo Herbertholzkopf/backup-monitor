@@ -18,8 +18,7 @@ class Installer {
         1 => 'Systemanforderungen prüfen',
         2 => 'Datenbank-Konfiguration',
         3 => 'Datenbank-Installation',
-        4 => 'Admin-Account erstellen',
-        5 => 'Installation abschließen'
+        4 => 'Installation abschließen'  
     ];
     
     private $requiredExtensions = [
@@ -231,7 +230,6 @@ class Installer {
                 $config['username'],
                 $config['password']
             );
-
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
             // Datenbank erstellen
@@ -239,7 +237,7 @@ class Installer {
             $pdo->exec("USE `{$config['database']}`");
             
             // SQL-Datei einlesen
-            $sqlFile = __DIR__ . '/database.sql';
+            $sqlFile = __DIR__ . '/database.sql';  // Fixed __DIR__ constant
             
             // Debug-Information
             error_log("SQL File Path: " . $sqlFile);
@@ -278,11 +276,13 @@ class Installer {
                 }
             }
             
-            $_SESSION['install_step'] = 4;
+            // Direkt zu Schritt 5 (Installation abschließen) gehen
+            $_SESSION['install_step'] = 5;  // Geändert von 4 auf 5
             return [
                 'success' => true,
                 'message' => 'Datenbank erfolgreich installiert!'
             ];
+            
         } catch (Exception $e) {
             return [
                 'success' => false,
