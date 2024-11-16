@@ -102,23 +102,11 @@ class Installer {
     }
     
     private function configureDatabase() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next'])) {
-            // Prüfen ob die Datenbank-Konfiguration in der Session existiert
-            if (!isset($_SESSION['db_config'])) {
-                return [
-                    'success' => false,
-                    'message' => 'Fehler:',
-                    'error' => 'Keine Datenbank-Konfiguration gefunden. Bitte konfigurieren Sie zuerst die Datenbankverbindung.'
-                ];
-            }
-            $_SESSION['install_step'] = 3;
-            return [
-                'success' => true,
-                'message' => 'Weiter zur Datenbankinstallation'
-            ];
-        }
+        // Debug-Ausgabe
+        error_log('Current SESSION in configureDatabase: ' . print_r($_SESSION, true));
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // Wenn das Formular mit den Datenbank-Daten gesendet wurde
             if (isset($_POST['db_host']) && isset($_POST['db_name']) && 
                 isset($_POST['db_user']) && isset($_POST['db_pass'])) {
                 
@@ -138,10 +126,12 @@ class Installer {
                     // Speichere Konfiguration in Session
                     $_SESSION['db_config'] = $config;
                     
+                    // Direkt zum nächsten Schritt
+                    $_SESSION['install_step'] = 3;
+                    
                     return [
                         'success' => true,
-                        'message' => 'Datenbank-Konfiguration erfolgreich! Klicken Sie auf Weiter um fortzufahren.',
-                        'showNext' => true
+                        'message' => 'Datenbank-Konfiguration erfolgreich! Installation wird fortgesetzt...'
                     ];
                 } catch (PDOException $e) {
                     return [
@@ -153,9 +143,6 @@ class Installer {
             }
         }
         
-        // Debug-Ausgabe
-        error_log('Current SESSION: ' . print_r($_SESSION, true));
-        
         // Formular anzeigen
         return [
             'showForm' => true,
@@ -164,21 +151,29 @@ class Installer {
     }
     
     private function getDatabaseForm() {
+        // Vorhandene Konfiguration aus der Session holen
+        $config = isset($_SESSION['db_config']) ? $_SESSION['db_config'] : [
+            'host' => 'localhost',
+            'database' => 'backup_monitor',
+            'username' => 'backup_monitor',
+            'password' => ''
+        ];
+        
         return '
             <form method="post" class="space-y-4">
                 <div class="space-y-2">
                     <label for="db_host" class="block text-sm font-medium text-gray-700">Database Host:</label>
-                    <input type="text" name="db_host" id="db_host" value="localhost" required 
+                    <input type="text" name="db_host" id="db_host" value="' . htmlspecialchars($config['host']) . '" required 
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div class="space-y-2">
                     <label for="db_name" class="block text-sm font-medium text-gray-700">Database Name:</label>
-                    <input type="text" name="db_name" id="db_name" value="backup_monitor" required
+                    <input type="text" name="db_name" id="db_name" value="' . htmlspecialchars($config['database']) . '" required
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div class="space-y-2">
                     <label for="db_user" class="block text-sm font-medium text-gray-700">Database User:</label>
-                    <input type="text" name="db_user" id="db_user" value="backup_monitor" required
+                    <input type="text" name="db_user" id="db_user" value="' . htmlspecialchars($config['username']) . '" required
                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
                 <div class="space-y-2">
@@ -188,7 +183,7 @@ class Installer {
                 </div>
                 <button type="submit" 
                         class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Konfiguration speichern
+                    Verbindung testen und fortfahren
                 </button>
             </form>
         ';
