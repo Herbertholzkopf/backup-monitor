@@ -61,16 +61,16 @@ echo ""  # Neue Zeile nach Passworteingabe
 read -s -p "Backup-Monitor Datenbank-Benutzer Passwort: " dbpass
 echo ""  # Neue Zeile nach Passworteingabe
 
-# MySQL-Befehle mit korrekter Passwort-Übergabe
-mysql --user=root --password="${mysqlpass}" <<EOF || {
-    echo -e "${RED}Fehler beim Verbinden mit MySQL. Bitte überprüfen Sie das Root-Passwort.${NC}"
-    exit 1
-}
+if ! mysql --user=root --password="${mysqlpass}" <<EOF
 CREATE DATABASE IF NOT EXISTS backup_monitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 CREATE USER IF NOT EXISTS 'backup_monitor'@'localhost' IDENTIFIED BY '${dbpass}';
 GRANT ALL PRIVILEGES ON backup_monitor.* TO 'backup_monitor'@'localhost';
 FLUSH PRIVILEGES;
 EOF
+then
+    echo -e "${RED}Fehler beim Verbinden mit MySQL. Bitte überprüfen Sie das Root-Passwort.${NC}"
+    exit 1
+fi
 
 # Projekt-Verzeichnis erstellen
 echo -e "${YELLOW}Erstelle Projekt-Verzeichnis...${NC}"
