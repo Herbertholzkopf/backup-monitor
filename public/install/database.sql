@@ -1,6 +1,3 @@
--- Datei: public/install/database.sql
-
--- Kunden-Tabelle
 CREATE TABLE IF NOT EXISTS customers (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -9,14 +6,12 @@ CREATE TABLE IF NOT EXISTS customers (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Backup-Arten-Tabelle
 CREATE TABLE IF NOT EXISTS backup_types (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Backup-Jobs-Tabelle
 CREATE TABLE IF NOT EXISTS backup_jobs (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
@@ -32,7 +27,6 @@ CREATE TABLE IF NOT EXISTS backup_jobs (
     FOREIGN KEY (backup_type_id) REFERENCES backup_types(id)
 );
 
--- Mails-Tabelle
 CREATE TABLE IF NOT EXISTS mails (
     id INT PRIMARY KEY AUTO_INCREMENT,
     sender_email VARCHAR(255) NOT NULL,
@@ -43,7 +37,6 @@ CREATE TABLE IF NOT EXISTS mails (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Backup-Ergebnisse-Tabelle
 CREATE TABLE IF NOT EXISTS backup_results (
     id INT PRIMARY KEY AUTO_INCREMENT,
     backup_job_id INT,
@@ -57,7 +50,6 @@ CREATE TABLE IF NOT EXISTS backup_results (
     FOREIGN KEY (mail_id) REFERENCES mails(id)
 );
 
--- Standard-Backup-Typen einfügen
 INSERT INTO backup_types (name) VALUES 
     ('Proxmox Backup'),
     ('Veeam Backup'),
