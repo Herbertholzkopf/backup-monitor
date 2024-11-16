@@ -65,9 +65,9 @@ class Installer {
         
         // Verzeichnisberechtigungen prüfen
         $writableDirs = [
-            '../config',
-            '../public/assets',
-            '../src/Views/cache'
+            '../../config',
+            '../../public/assets',
+            '../../src/Views/cache'
         ];
         
         foreach ($writableDirs as $dir) {
