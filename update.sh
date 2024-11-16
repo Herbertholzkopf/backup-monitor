@@ -32,8 +32,15 @@ cp -r /var/www/backup-monitor $BACKUP_DIR/files
 echo -e "${YELLOW}Aktualisiere Code...${NC}"
 cd /var/www/backup-monitor
 
-# Falls Git verwendet wird:
-# git pull origin main
+#  Git für das Update verwenden:
+echo -e "${YELLOW}Aktualisiere Code...${NC}"
+cd /var/www/backup-monitor
+if git pull origin main; then
+    echo -e "${GREEN}Code erfolgreich aktualisiert${NC}"
+else
+    echo -e "${RED}Fehler beim Aktualisieren des Codes${NC}"
+    exit 1
+fi
 
 # Composer-Abhängigkeiten aktualisieren
 composer install --no-dev --optimize-autoloader

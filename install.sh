@@ -51,8 +51,15 @@ echo -e "${YELLOW}Erstelle Projekt-Verzeichnis...${NC}"
 mkdir -p /var/www/backup-monitor
 chown -R www-data:www-data /var/www/backup-monitor
 
-# Git Repository klonen (falls vorhanden)
-# git clone https://your-repo.git /var/www/backup-monitor
+# Git Repository klonen (inklusive Fehlermeldung)
+echo -e "${YELLOW}Klone Git Repository...${NC}"
+if git clone https://github.com/Herbertholzkopf/backup-monitor.git /var/www/backup-monitor; then
+    echo -e "${GREEN}Repository erfolgreich geklont${NC}"
+else
+    echo -e "${RED}Fehler beim Klonen des Repositories${NC}"
+    exit 1
+fi
+
 
 # Nginx Konfiguration
 echo -e "${YELLOW}Konfiguriere Nginx...${NC}"
