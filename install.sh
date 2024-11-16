@@ -43,23 +43,39 @@ if ! command -v mysql &> /dev/null; then
     exit 1
 fi
 
-# MySQL Root Passwort setzen (optional, kann angepasst werden)
+# MySQL Root Passwort setzen
 echo -e "${YELLOW}MySQL Root Passwort setzen...${NC}"
-mysql --user=root <<_EOF_
-ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'your_root_password';
+read -s -p "Gewünschtes MySQL Root Passwort: " mysqlpass
+echo ""
+
+# MySQL Secure Installation
+mysql --user=root <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED WITH auth_socket;
 DELETE FROM mysql.user WHERE User='';
 DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
 DROP DATABASE IF EXISTS test;
 DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
 FLUSH PRIVILEGES;
-_EOF_
+EOF
+
+# Root Passwort setzen
+sudo mysql <<EOF
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${mysqlpass}';
+FLUSH PRIVILEGES;
+EOF
+
+# Überprüfen der Verbindung
+if ! mysql --user=root --password="${mysqlpass}" -e "SELECT 1;" >/dev/null 2>&1; then
+    echo -e "${RED}Fehler beim Setzen des MySQL Root-Passworts.${NC}"
+    exit 1
+fi
+
+echo -e "${GREEN}MySQL Root-Passwort erfolgreich gesetzt.${NC}"
 
 # Backup-Monitor Datenbank und Benutzer erstellen
 echo -e "${YELLOW}Erstelle Datenbank und Benutzer...${NC}"
-read -s -p "MySQL Root Passwort: " mysqlpass
-echo ""  # Neue Zeile nach Passworteingabe
 read -s -p "Backup-Monitor Datenbank-Benutzer Passwort: " dbpass
-echo ""  # Neue Zeile nach Passworteingabe
+echo ""
 
 if ! mysql --user=root --password="${mysqlpass}" <<EOF
 CREATE DATABASE IF NOT EXISTS backup_monitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -68,9 +84,12 @@ GRANT ALL PRIVILEGES ON backup_monitor.* TO 'backup_monitor'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 then
-    echo -e "${RED}Fehler beim Verbinden mit MySQL. Bitte überprüfen Sie das Root-Passwort.${NC}"
+    echo -e "${RED}Fehler beim Erstellen der Datenbank und des Benutzers.${NC}"
     exit 1
 fi
+
+echo -e "${GREEN}Datenbank und Benutzer erfolgreich erstellt.${NC}"
+
 
 # Projekt-Verzeichnis erstellen
 echo -e "${YELLOW}Erstelle Projekt-Verzeichnis...${NC}"
