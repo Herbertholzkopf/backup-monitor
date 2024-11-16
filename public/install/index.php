@@ -1,7 +1,17 @@
 <?php
-// install/index.php
 
 session_start();
+
+// Debug-Ausgabe der Session
+error_log('Current Session State: ' . print_r($_SESSION, true));
+
+// Sicherstellen, dass die Session funktioniert
+if (!isset($_SESSION['test'])) {
+    $_SESSION['test'] = true;
+    if (!isset($_SESSION['test'])) {
+        die('Session-Speicherung funktioniert nicht korrekt.');
+    }
+}
 
 class Installer {
     private $steps = [
@@ -93,6 +103,14 @@ class Installer {
     
     private function configureDatabase() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next'])) {
+            // Prüfen ob die Datenbank-Konfiguration in der Session existiert
+            if (!isset($_SESSION['db_config'])) {
+                return [
+                    'success' => false,
+                    'message' => 'Fehler:',
+                    'error' => 'Keine Datenbank-Konfiguration gefunden. Bitte konfigurieren Sie zuerst die Datenbankverbindung.'
+                ];
+            }
             $_SESSION['install_step'] = 3;
             return [
                 'success' => true,
@@ -135,6 +153,9 @@ class Installer {
             }
         }
         
+        // Debug-Ausgabe
+        error_log('Current SESSION: ' . print_r($_SESSION, true));
+        
         // Formular anzeigen
         return [
             'showForm' => true,
@@ -175,11 +196,27 @@ class Installer {
     
     
     private function installDatabase() {
+        // Debug-Ausgabe am Anfang
+        error_log('Session at start of installDatabase: ' . print_r($_SESSION, true));
+        
+        if (!isset($_SESSION['db_config'])) {
+            return [
+                'success' => false,
+                'message' => 'Datenbankinstallation fehlgeschlagen:',
+                'error' => 'Keine Datenbank-Konfiguration gefunden. Bitte kehren Sie zum Konfigurationsschritt zurück.'
+            ];
+        }
+    
         try {
             $config = $_SESSION['db_config'];
             
             // Debug-Information
-            error_log("Database Config: " . print_r($config, true));
+            error_log("Using Database Config: " . print_r($config, true));
+            
+            // Prüfen ob die notwendigen Konfigurationsdaten vorhanden sind
+            if (empty($config['username']) || !isset($config['password'])) {
+                throw new Exception("Unvollständige Datenbank-Konfiguration");
+            }
             
             // Socket-Pfad
             $socket = '/var/run/mysqld/mysqld.sock';
@@ -192,12 +229,14 @@ class Installer {
             }
             
             error_log("Attempting connection with DSN: " . $dsn);
+            error_log("Using username: " . $config['username']);
             
             $pdo = new PDO(
                 $dsn,
                 $config['username'],
                 $config['password']
             );
+
             $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
             
             // Datenbank erstellen
