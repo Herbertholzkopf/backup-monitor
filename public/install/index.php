@@ -278,26 +278,33 @@ $result = $installer->run();
             <h1 class="text-2xl font-bold text-center">Backup-Monitor Installation</h1>
             
             <div class="space-y-4">
-                <?php if (isset($result['success'])): ?>
-                    <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
-                        <p><?= htmlspecialchars($result['message']) ?></p>
-                        <?php if (isset($result['errors'])): ?>
-                            <ul class="list-disc list-inside mt-2">
-                                <?php foreach ($result['errors'] as $error): ?>
-                                    <li><?= htmlspecialchars($error) ?></li>
-                                <?php endforeach; ?>
-                            </ul>
-                        <?php endif; ?>
-                        
-                        <?php if (isset($result['note'])): ?>
-                            <p class="mt-4 font-bold"><?= htmlspecialchars($result['note']) ?></p>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
-                
-                <?php if (isset($result['showForm'])): ?>
-                    <?= $result['form'] ?>
-                <?php endif; ?>
+            <?php if (isset($result['success'])): ?>
+                <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
+                    <p><?= htmlspecialchars($result['message']) ?></p>
+                    
+                    <?php if ($result['success']): ?>
+                        <form method="post">
+                            <button type="submit" name="next" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Weiter</button>
+                        </form>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($result['errors'])): ?>
+                        <ul class="list-disc list-inside mt-2">
+                            <?php foreach ($result['errors'] as $error): ?>
+                                <li><?= htmlspecialchars($error) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($result['note'])): ?>
+                        <p class="mt-4 font-bold"><?= htmlspecialchars($result['note']) ?></p>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (isset($result['showForm'])): ?>
+                <?= $result['form'] ?>
+            <?php endif; ?>
             </div>
         </div>
     </div>
