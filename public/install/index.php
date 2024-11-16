@@ -177,6 +177,10 @@ class Installer {
     private function installDatabase() {
         try {
             $config = $_SESSION['db_config'];
+            
+            // Debug-Information
+            error_log("Database Config: " . print_r($config, true));
+            
             $pdo = new PDO(
                 "mysql:host={$config['host']};charset=utf8mb4",
                 $config['username'],
@@ -188,21 +192,24 @@ class Installer {
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             $pdo->exec("USE `{$config['database']}`");
             
-            // SQL-Datei einlesen (Pfad korrigiert)
-            $sqlFile = __DIR__ . '/database.sql'; // Wir sind bereits im install-Verzeichnis
+            // SQL-Datei einlesen
+            $sqlFile = __DIR__ . '/database.sql';
             
-            // Debug-Ausgabe
+            // Debug-Information
             error_log("SQL File Path: " . $sqlFile);
             error_log("File exists: " . (file_exists($sqlFile) ? 'yes' : 'no'));
             
             if (!file_exists($sqlFile)) {
-                throw new Exception("SQL-Datei nicht gefunden: $sqlFile");
+                throw new Exception("SQL-Datei nicht gefunden. Pfad: " . $sqlFile);
             }
             
             $sql = file_get_contents($sqlFile);
             if ($sql === false) {
-                throw new Exception("SQL-Datei konnte nicht gelesen werden");
+                throw new Exception("SQL-Datei konnte nicht gelesen werden. Pfad: " . $sqlFile);
             }
+            
+            // Debug-Information
+            error_log("SQL Content Length: " . strlen($sql));
             
             // Einzelne SQL-Statements ausführen
             $statements = array_filter(
@@ -213,15 +220,15 @@ class Installer {
                 'strlen'
             );
             
-            foreach ($statements as $statement) {
+            foreach ($statements as $index => $statement) {
                 try {
                     if (!empty(trim($statement))) {
+                        // Debug-Information
+                        error_log("Executing SQL statement #" . ($index + 1));
                         $pdo->exec($statement);
                     }
                 } catch (PDOException $e) {
-                    error_log("Error executing statement: " . $statement);
-                    error_log("Error message: " . $e->getMessage());
-                    throw $e;
+                    throw new Exception("Fehler beim Ausführen des SQL-Statements #" . ($index + 1) . ": " . $e->getMessage() . "\nStatement: " . $statement);
                 }
             }
             
@@ -234,7 +241,7 @@ class Installer {
             return [
                 'success' => false,
                 'message' => 'Datenbankinstallation fehlgeschlagen:',
-                'error' => $e->getMessage() . "\nPrüfen Sie die PHP-Fehlerprotokolle für weitere Details."
+                'error' => $e->getMessage()
             ];
         }
     }
@@ -330,6 +337,10 @@ $result = $installer->run();
             <?php if (isset($result['success'])): ?>
                 <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
                     <p><?= htmlspecialchars($result['message']) ?></p>
+                    
+                    <?php if (!$result['success'] && isset($result['error'])): ?>
+                        <p class="mt-2 font-bold">Fehler: <?= htmlspecialchars($result['error']) ?></p>
+                    <?php endif; ?>
                     
                     <?php if ($result['success']): ?>
                         <form method="post">
