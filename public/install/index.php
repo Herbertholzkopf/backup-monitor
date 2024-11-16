@@ -93,36 +93,38 @@ class Installer {
     
     private function configureDatabae() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $config = [
-                'host' => $_POST['db_host'],
-                'database' => $_POST['db_name'],
-                'username' => $_POST['db_user'],
-                'password' => $_POST['db_pass']
-            ];
-            
-            // Datenbankverbindung testen
-            try {
-                $dsn = "mysql:host={$config['host']};charset=utf8mb4";
-                $pdo = new PDO($dsn, $config['username'], $config['password']);
-                $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                
-                // Konfiguration speichern
-                $configContent = "<?php\nreturn " . var_export($config, true) . ";\n";
-                file_put_contents('../config/database.php', $configContent);
-                
-                $_SESSION['install_step'] = 3;
-                $_SESSION['db_config'] = $config;
-                
-                return [
-                    'success' => true,
-                    'message' => 'Datenbank-Konfiguration erfolgreich!'
+            if (isset($_POST['db_host']) && isset($_POST['db_name']) && isset($_POST['db_user']) && isset($_POST['db_pass'])) {
+                $config = [
+                    'host' => $_POST['db_host'],
+                    'database' => $_POST['db_name'],
+                    'username' => $_POST['db_user'],
+                    'password' => $_POST['db_pass']
                 ];
-            } catch (PDOException $e) {
-                return [
-                    'success' => false,
-                    'message' => 'Datenbankverbindung fehlgeschlagen:',
-                    'error' => $e->getMessage()
-                ];
+                
+                // Datenbankverbindung testen
+                try {
+                    $dsn = "mysql:host={$config['host']};charset=utf8mb4";
+                    $pdo = new PDO($dsn, $config['username'], $config['password']);
+                    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    
+                    // Konfiguration speichern
+                    $configContent = "<?php\nreturn " . var_export($config, true) . ";\n";
+                    file_put_contents('../config/database.php', $configContent);
+                    
+                    $_SESSION['install_step'] = 3;
+                    $_SESSION['db_config'] = $config;
+                    
+                    return [
+                        'success' => true,
+                        'message' => 'Datenbank-Konfiguration erfolgreich!'
+                    ];
+                } catch (PDOException $e) {
+                    return [
+                        'success' => false,
+                        'message' => 'Datenbankverbindung fehlgeschlagen:',
+                        'error' => $e->getMessage()
+                    ];
+                }
             }
         }
         
