@@ -3,7 +3,7 @@
     "description": "Backup Monitoring System",
     "type": "project",
     "require": {
-        "php": ">=7.4",
+        "php": ">=8.2",
         "ext-pdo": "*",
         "ext-imap": "*",
         "ext-json": "*"

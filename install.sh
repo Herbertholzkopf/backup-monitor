@@ -141,6 +141,14 @@ ln -s /etc/nginx/sites-available/backup-monitor /etc/nginx/sites-enabled/
 rm /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
 
+
+# Composer installieren und Abhängigkeiten installieren
+composer install
+
+# Berechtigungen aktualisieren
+chown -R www-data:www-data /var/www/backup-monitor
+
+
 # Projekt-Verzeichnisse erstellen
 echo -e "${YELLOW}Erstelle Projekt-Struktur...${NC}"
 mkdir -p /var/www/backup-monitor/{config,public,src,logs,cron}
