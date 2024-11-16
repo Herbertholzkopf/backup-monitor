@@ -1,0 +1,38 @@
+Die wichtigsten Features der Views sind:
+
+Layout-System:
+
+Responsive Design
+Sidebar Navigation
+Konsistentes Look & Feel
+
+
+Dashboard:
+
+Echtzeit-Status-Updates
+Interaktive Backup-Übersicht
+Tooltips mit Details
+Notiz-Funktionalität
+
+
+Kunden-Verwaltung:
+
+CRUD-Operationen
+Modal-Dialoge
+Validierung
+Bestätigungsdialoge
+
+
+Backup-Job-Verwaltung:
+
+Detaillierte Job-Konfiguration
+Suchbegriff-Verwaltung
+Verknüpfung mit Kunden
+
+
+JavaScript-Funktionalitäten:
+
+Alpine.js für reaktive UI-Updates
+API-Integration
+Error-Handling
+Form-Validierung

@@ -1,0 +1,41 @@
+MailProcessor:
+
+POP3-Verbindung und Mail-Abruf
+Verarbeitung verschiedener Mail-Formate
+Zeichensatz-Konvertierung
+Fehlerbehandlung und Logging
+
+
+BackupAnalyzer:
+
+Analyse der Mail-Inhalte
+Status-Erkennung (Erfolg/Warnung/Fehler)
+Zuordnung zu Backup-Jobs
+Ergebnis-Speicherung
+
+
+Logger:
+
+Strukturiertes Logging
+Verschiedene Log-Level
+Monatliche Log-Dateien
+
+
+Cron-Jobs:
+
+Automatische Ausführung
+Fehlerbehandlung
+Datenbankverbindung
+
+
+
+
+
+Die Cron-Jobs sollten wie folgt eingerichtet werden:
+
+# /etc/crontab
+# Mails alle 5 Minuten abrufen
+*/5 * * * * www-data php /path/to/backup-monitor/cron/fetch_mails.php
+
+# Mails alle 5 Minuten analysieren (versetzt)
+2-59/5 * * * * www-data php /path/to/backup-monitor/cron/analyze_mails.php

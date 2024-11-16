@@ -1,0 +1,21 @@
+Die wichtigsten Features dieser Deployment-Komponenten sind:
+
+
+Installations-Skript:
+
+Automatische System-Aktualisierung
+Installation aller Abhängigkeiten
+Datenbank-Setup
+Nginx-Konfiguration
+Verzeichnis-Struktur
+Berechtigungen
+Cron-Jobs
+
+
+Update-Skript:
+
+Automatisches Backup
+Code-Aktualisierung
+Abhängigkeiten-Update
+Berechtigungen-Reset
+Service-Neustart
