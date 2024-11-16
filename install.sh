@@ -164,6 +164,7 @@ systemctl restart nginx
 # Projekt-Verzeichnisse erstellen
 echo -e "${YELLOW}Erstelle Projekt-Struktur...${NC}"
 mkdir -p /var/www/backup-monitor/{config,public,src,logs,cron}
+mkdir -p /var/www/backup-monitor/src/Views/cache
 chown -R www-data:www-data /var/www/backup-monitor
 
 # Konfigurationsdateien erstellen
