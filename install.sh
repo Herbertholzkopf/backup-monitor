@@ -105,6 +105,7 @@ else
     exit 1
 fi
 
+chown -R www-data:www-data /var/www/backup-monitor/public/install
 
 # Nginx Konfiguration
 echo -e "${YELLOW}Konfiguriere Nginx...${NC}"
@@ -142,13 +143,23 @@ rm /etc/nginx/sites-enabled/default
 nginx -t && systemctl restart nginx
 
 
-# Composer installieren und Abhängigkeiten installieren
+# Composer installieren und initialisieren
+echo -e "${YELLOW}Initialisiere Composer...${NC}"
 cd /var/www/backup-monitor/
-composer install
+rm -rf vendor composer.lock
+if composer install; then
+    echo -e "${GREEN}Composer-Abhängigkeiten erfolgreich installiert${NC}"
+else
+    echo -e "${RED}Fehler beim Installieren der Composer-Abhängigkeiten${NC}"
+    exit 1
+fi
 
 # Berechtigungen aktualisieren
 chown -R www-data:www-data /var/www/backup-monitor
 
+# Nginx und PHP-FPM neustarten 
+systemctl restart php8.2-fpm
+systemctl restart nginx
 
 # Projekt-Verzeichnisse erstellen
 echo -e "${YELLOW}Erstelle Projekt-Struktur...${NC}"
