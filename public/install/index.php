@@ -36,7 +36,7 @@ class Installer {
             case 1:
                 return $this->checkRequirements();
             case 2:
-                return $this->configureDatabae();
+                return $this->configureDatabase(); // Tippfehler korrigiert
             case 3:
                 return $this->installDatabase();
             case 4:
@@ -91,7 +91,15 @@ class Installer {
         ];
     }
     
-    private function configureDatabae() {
+    private function configureDatabase() { // Name korrigiert
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next'])) {
+            $_SESSION['install_step'] = 3;
+            return [
+                'success' => true,
+                'message' => 'Weiter zur Datenbankinstallation'
+            ];
+        }
+        
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (isset($_POST['db_host']) && isset($_POST['db_name']) && isset($_POST['db_user']) && isset($_POST['db_pass'])) {
                 $config = [
@@ -111,7 +119,6 @@ class Installer {
                     $configContent = "<?php\nreturn " . var_export($config, true) . ";\n";
                     file_put_contents('../config/database.php', $configContent);
                     
-                    $_SESSION['install_step'] = 3;
                     $_SESSION['db_config'] = $config;
                     
                     return [
@@ -130,7 +137,6 @@ class Installer {
         
         // Formular anzeigen
         return [
-            'success' => true,
             'showForm' => true,
             'form' => $this->getDatabaseForm()
         ];
@@ -139,26 +145,34 @@ class Installer {
     private function getDatabaseForm() {
         return '
             <form method="post" class="space-y-4">
-                <div>
-                    <label for="db_host">Database Host:</label>
-                    <input type="text" name="db_host" id="db_host" value="localhost" required>
+                <div class="space-y-2">
+                    <label for="db_host" class="block text-sm font-medium text-gray-700">Database Host:</label>
+                    <input type="text" name="db_host" id="db_host" value="localhost" required 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
-                <div>
-                    <label for="db_name">Database Name:</label>
-                    <input type="text" name="db_name" id="db_name" value="backup_monitor" required>
+                <div class="space-y-2">
+                    <label for="db_name" class="block text-sm font-medium text-gray-700">Database Name:</label>
+                    <input type="text" name="db_name" id="db_name" value="backup_monitor" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
-                <div>
-                    <label for="db_user">Database User:</label>
-                    <input type="text" name="db_user" id="db_user" required>
+                <div class="space-y-2">
+                    <label for="db_user" class="block text-sm font-medium text-gray-700">Database User:</label>
+                    <input type="text" name="db_user" id="db_user" value="backup_monitor" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
-                <div>
-                    <label for="db_pass">Database Password:</label>
-                    <input type="password" name="db_pass" id="db_pass" required>
+                <div class="space-y-2">
+                    <label for="db_pass" class="block text-sm font-medium text-gray-700">Database Password:</label>
+                    <input type="password" name="db_pass" id="db_pass" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 </div>
-                <button type="submit">Konfiguration speichern</button>
+                <button type="submit" 
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Konfiguration speichern
+                </button>
             </form>
         ';
     }
+    
     
     private function installDatabase() {
         try {
