@@ -91,89 +91,6 @@ class Installer {
         ];
     }
     
-    private function configureDatabase() { // Name korrigiert
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next'])) {
-            $_SESSION['install_step'] = 3;
-            return [
-                'success' => true,
-                'message' => 'Weiter zur Datenbankinstallation'
-            ];
-        }
-        
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            if (isset($_POST['db_host']) && isset($_POST['db_name']) && isset($_POST['db_user']) && isset($_POST['db_pass'])) {
-                $config = [
-                    'host' => $_POST['db_host'],
-                    'database' => $_POST['db_name'],
-                    'username' => $_POST['db_user'],
-                    'password' => $_POST['db_pass']
-                ];
-                
-                // Datenbankverbindung testen
-                try {
-                    $dsn = "mysql:host={$config['host']};charset=utf8mb4";
-                    $pdo = new PDO($dsn, $config['username'], $config['password']);
-                    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-                    
-                    // Konfiguration speichern
-                    $configContent = "<?php\nreturn " . var_export($config, true) . ";\n";
-                    file_put_contents('../config/database.php', $configContent);
-                    
-                    $_SESSION['db_config'] = $config;
-                    
-                    return [
-                        'success' => true,
-                        'message' => 'Datenbank-Konfiguration erfolgreich!'
-                    ];
-                } catch (PDOException $e) {
-                    return [
-                        'success' => false,
-                        'message' => 'Datenbankverbindung fehlgeschlagen:',
-                        'error' => $e->getMessage()
-                    ];
-                }
-            }
-        }
-        
-        // Formular anzeigen
-        return [
-            'showForm' => true,
-            'form' => $this->getDatabaseForm()
-        ];
-    }
-    
-    private function getDatabaseForm() {
-        return '
-            <form method="post" class="space-y-4">
-                <div class="space-y-2">
-                    <label for="db_host" class="block text-sm font-medium text-gray-700">Database Host:</label>
-                    <input type="text" name="db_host" id="db_host" value="localhost" required 
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <div class="space-y-2">
-                    <label for="db_name" class="block text-sm font-medium text-gray-700">Database Name:</label>
-                    <input type="text" name="db_name" id="db_name" value="backup_monitor" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <div class="space-y-2">
-                    <label for="db_user" class="block text-sm font-medium text-gray-700">Database User:</label>
-                    <input type="text" name="db_user" id="db_user" value="backup_monitor" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <div class="space-y-2">
-                    <label for="db_pass" class="block text-sm font-medium text-gray-700">Database Password:</label>
-                    <input type="password" name="db_pass" id="db_pass" required
-                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                </div>
-                <button type="submit" 
-                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                    Konfiguration speichern
-                </button>
-            </form>
-        ';
-    }
-    
-    
     private function configureDatabase() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next'])) {
             $_SESSION['install_step'] = 3;
@@ -225,6 +142,121 @@ class Installer {
         ];
     }
     
+    private function getDatabaseForm() {
+        return '
+            <form method="post" class="space-y-4">
+                <div class="space-y-2">
+                    <label for="db_host" class="block text-sm font-medium text-gray-700">Database Host:</label>
+                    <input type="text" name="db_host" id="db_host" value="localhost" required 
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="db_name" class="block text-sm font-medium text-gray-700">Database Name:</label>
+                    <input type="text" name="db_name" id="db_name" value="backup_monitor" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="db_user" class="block text-sm font-medium text-gray-700">Database User:</label>
+                    <input type="text" name="db_user" id="db_user" value="backup_monitor" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <div class="space-y-2">
+                    <label for="db_pass" class="block text-sm font-medium text-gray-700">Database Password:</label>
+                    <input type="password" name="db_pass" id="db_pass" required
+                           class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                </div>
+                <button type="submit" 
+                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Konfiguration speichern
+                </button>
+            </form>
+        ';
+    }
+    
+    
+    private function installDatabase() {
+        try {
+            $config = $_SESSION['db_config'];
+            
+            // Debug-Information
+            error_log("Database Config: " . print_r($config, true));
+            
+            // Socket-Pfad
+            $socket = '/var/run/mysqld/mysqld.sock';
+            
+            // DSN basierend auf Verfügbarkeit
+            if (file_exists($socket)) {
+                $dsn = "mysql:unix_socket={$socket};charset=utf8mb4";
+            } else {
+                $dsn = "mysql:host={$config['host']};charset=utf8mb4";
+            }
+            
+            error_log("Attempting connection with DSN: " . $dsn);
+            
+            $pdo = new PDO(
+                $dsn,
+                $config['username'],
+                $config['password']
+            );
+            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            
+            // Datenbank erstellen
+            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            $pdo->exec("USE `{$config['database']}`");
+            
+            // SQL-Datei einlesen
+            $sqlFile = __DIR__ . '/database.sql';
+            
+            // Debug-Information
+            error_log("SQL File Path: " . $sqlFile);
+            error_log("File exists: " . (file_exists($sqlFile) ? 'yes' : 'no'));
+            
+            if (!file_exists($sqlFile)) {
+                throw new Exception("SQL-Datei nicht gefunden. Pfad: " . $sqlFile);
+            }
+            
+            $sql = file_get_contents($sqlFile);
+            if ($sql === false) {
+                throw new Exception("SQL-Datei konnte nicht gelesen werden. Pfad: " . $sqlFile);
+            }
+            
+            // Debug-Information
+            error_log("SQL Content Length: " . strlen($sql));
+            
+            // Einzelne SQL-Statements ausführen
+            $statements = array_filter(
+                array_map(
+                    'trim',
+                    explode(';', $sql)
+                ),
+                'strlen'
+            );
+            
+            foreach ($statements as $index => $statement) {
+                try {
+                    if (!empty(trim($statement))) {
+                        // Debug-Information
+                        error_log("Executing SQL statement #" . ($index + 1));
+                        $pdo->exec($statement);
+                    }
+                } catch (PDOException $e) {
+                    throw new Exception("Fehler beim Ausführen des SQL-Statements #" . ($index + 1) . ": " . $e->getMessage() . "\nStatement: " . $statement);
+                }
+            }
+            
+            $_SESSION['install_step'] = 4;
+            return [
+                'success' => true,
+                'message' => 'Datenbank erfolgreich installiert!'
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Datenbankinstallation fehlgeschlagen:',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
     
     private function createAdminAccount() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -314,37 +346,27 @@ $result = $installer->run();
             <h1 class="text-2xl font-bold text-center">Backup-Monitor Installation</h1>
             
             <div class="space-y-4">
-            <?php if (isset($result['success'])): ?>
-                <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
-                    <p><?= htmlspecialchars($result['message']) ?></p>
-                    
-                    <?php if (!$result['success'] && isset($result['error'])): ?>
-                        <p class="mt-2 font-bold">Fehler: <?= htmlspecialchars($result['error']) ?></p>
-                    <?php endif; ?>
-                    
-                    <?php if ($result['success']): ?>
-                        <form method="post">
-                            <button type="submit" name="next" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">Weiter</button>
-                        </form>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($result['errors'])): ?>
-                        <ul class="list-disc list-inside mt-2">
-                            <?php foreach ($result['errors'] as $error): ?>
-                                <li><?= htmlspecialchars($error) ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    <?php endif; ?>
-                    
-                    <?php if (isset($result['note'])): ?>
-                        <p class="mt-4 font-bold"><?= htmlspecialchars($result['note']) ?></p>
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
+                <?php if (isset($result['success'])): ?>
+                    <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
+                        <p><?= htmlspecialchars($result['message']) ?></p>
+                        
+                        <?php if (!$result['success'] && isset($result['error'])): ?>
+                            <p class="mt-2 font-bold">Fehler: <?= htmlspecialchars($result['error']) ?></p>
+                        <?php endif; ?>
+                        
+                        <?php if (isset($result['showNext'])): ?>
+                            <form method="post" class="mt-4">
+                                <button type="submit" name="next" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                    Weiter
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
-            <?php if (isset($result['showForm'])): ?>
-                <?= $result['form'] ?>
-            <?php endif; ?>
+                <?php if (isset($result['showForm'])): ?>
+                    <?= $result['form'] ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
