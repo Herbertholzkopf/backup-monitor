@@ -174,89 +174,57 @@ class Installer {
     }
     
     
-    private function installDatabase() {
-        try {
-            $config = $_SESSION['db_config'];
-            
-            // Debug-Information
-            error_log("Database Config: " . print_r($config, true));
-            
-            // Socket-Pfad
-            $socket = '/var/run/mysqld/mysqld.sock';
-            
-            // DSN basierend auf Verfügbarkeit
-            if (file_exists($socket)) {
-                $dsn = "mysql:unix_socket={$socket};charset=utf8mb4";
-            } else {
-                $dsn = "mysql:host={$config['host']};charset=utf8mb4";
-            }
-            
-            error_log("Attempting connection with DSN: " . $dsn);
-            
-            $pdo = new PDO(
-                $dsn,
-                $config['username'],
-                $config['password']
-            );
-            $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            
-            // Datenbank erstellen
-            $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
-            $pdo->exec("USE `{$config['database']}`");
-            
-            // SQL-Datei einlesen
-            $sqlFile = __DIR__ . '/database.sql';
-            
-            // Debug-Information
-            error_log("SQL File Path: " . $sqlFile);
-            error_log("File exists: " . (file_exists($sqlFile) ? 'yes' : 'no'));
-            
-            if (!file_exists($sqlFile)) {
-                throw new Exception("SQL-Datei nicht gefunden. Pfad: " . $sqlFile);
-            }
-            
-            $sql = file_get_contents($sqlFile);
-            if ($sql === false) {
-                throw new Exception("SQL-Datei konnte nicht gelesen werden. Pfad: " . $sqlFile);
-            }
-            
-            // Debug-Information
-            error_log("SQL Content Length: " . strlen($sql));
-            
-            // Einzelne SQL-Statements ausführen
-            $statements = array_filter(
-                array_map(
-                    'trim',
-                    explode(';', $sql)
-                ),
-                'strlen'
-            );
-            
-            foreach ($statements as $index => $statement) {
-                try {
-                    if (!empty(trim($statement))) {
-                        // Debug-Information
-                        error_log("Executing SQL statement #" . ($index + 1));
-                        $pdo->exec($statement);
-                    }
-                } catch (PDOException $e) {
-                    throw new Exception("Fehler beim Ausführen des SQL-Statements #" . ($index + 1) . ": " . $e->getMessage() . "\nStatement: " . $statement);
-                }
-            }
-            
-            $_SESSION['install_step'] = 4;
+    private function configureDatabase() {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['next'])) {
+            $_SESSION['install_step'] = 3;
             return [
                 'success' => true,
-                'message' => 'Datenbank erfolgreich installiert!'
-            ];
-        } catch (Exception $e) {
-            return [
-                'success' => false,
-                'message' => 'Datenbankinstallation fehlgeschlagen:',
-                'error' => $e->getMessage()
+                'message' => 'Weiter zur Datenbankinstallation'
             ];
         }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            if (isset($_POST['db_host']) && isset($_POST['db_name']) && 
+                isset($_POST['db_user']) && isset($_POST['db_pass'])) {
+                
+                $config = [
+                    'host' => $_POST['db_host'],
+                    'database' => $_POST['db_name'],
+                    'username' => $_POST['db_user'],
+                    'password' => $_POST['db_pass']
+                ];
+                
+                // Teste die Verbindung
+                try {
+                    $dsn = "mysql:host={$config['host']};charset=utf8mb4";
+                    $pdo = new PDO($dsn, $config['username'], $config['password']);
+                    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+                    
+                    // Speichere Konfiguration in Session
+                    $_SESSION['db_config'] = $config;
+                    
+                    return [
+                        'success' => true,
+                        'message' => 'Datenbank-Konfiguration erfolgreich! Klicken Sie auf Weiter um fortzufahren.',
+                        'showNext' => true
+                    ];
+                } catch (PDOException $e) {
+                    return [
+                        'success' => false,
+                        'message' => 'Datenbankverbindung fehlgeschlagen:',
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+        }
+        
+        // Formular anzeigen
+        return [
+            'showForm' => true,
+            'form' => $this->getDatabaseForm()
+        ];
     }
+    
     
     private function createAdminAccount() {
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
