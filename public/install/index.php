@@ -188,16 +188,36 @@ class Installer {
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             $pdo->exec("USE `{$config['database']}`");
             
-            // SQL-Datei einlesen und ausführen
-            $sql = file_get_contents('database.sql');
-            $pdo->exec($sql);
+            // SQL-Datei einlesen
+            $sqlFile = __DIR__ . '/database.sql';
+            if (!file_exists($sqlFile)) {
+                throw new Exception("SQL-Datei nicht gefunden: $sqlFile");
+            }
+            
+            $sql = file_get_contents($sqlFile);
+            if ($sql === false) {
+                throw new Exception("SQL-Datei konnte nicht gelesen werden");
+            }
+            
+            // Einzelne SQL-Statements ausführen
+            $statements = array_filter(
+                array_map(
+                    'trim',
+                    explode(';', $sql)
+                ),
+                'strlen'
+            );
+            
+            foreach ($statements as $statement) {
+                $pdo->exec($statement);
+            }
             
             $_SESSION['install_step'] = 4;
             return [
                 'success' => true,
                 'message' => 'Datenbank erfolgreich installiert!'
             ];
-        } catch (PDOException $e) {
+        } catch (Exception $e) {
             return [
                 'success' => false,
                 'message' => 'Datenbankinstallation fehlgeschlagen:',
