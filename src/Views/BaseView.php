@@ -1,5 +1,7 @@
 <?php
+
 // src/Views/BaseView.php
+
 namespace App\Views;
 
 class BaseView {

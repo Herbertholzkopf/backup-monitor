@@ -1,0 +1,9 @@
+src/
+└── Views/
+    ├── BaseView.php
+    └── templates/
+        ├── layout.php
+        ├── dashboard/
+        │   └── index.php
+        └── customers/
+            └── index.php

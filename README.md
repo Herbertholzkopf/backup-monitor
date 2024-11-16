@@ -11,3 +11,6 @@ chmod +x install.sh
 
 # 3. Ausführen
 sudo ./install.sh
+
+# 4. Browser öffnen
+http://IP-Adresse-des-Servers/install
