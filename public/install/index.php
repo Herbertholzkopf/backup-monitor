@@ -181,8 +181,20 @@ class Installer {
             // Debug-Information
             error_log("Database Config: " . print_r($config, true));
             
+            // Socket-Pfad
+            $socket = '/var/run/mysqld/mysqld.sock';
+            
+            // DSN basierend auf Verfügbarkeit
+            if (file_exists($socket)) {
+                $dsn = "mysql:unix_socket={$socket};charset=utf8mb4";
+            } else {
+                $dsn = "mysql:host={$config['host']};charset=utf8mb4";
+            }
+            
+            error_log("Attempting connection with DSN: " . $dsn);
+            
             $pdo = new PDO(
-                "mysql:host={$config['host']};charset=utf8mb4",
+                $dsn,
                 $config['username'],
                 $config['password']
             );
