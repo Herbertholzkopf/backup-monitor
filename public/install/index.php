@@ -188,8 +188,13 @@ class Installer {
             $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
             $pdo->exec("USE `{$config['database']}`");
             
-            // SQL-Datei einlesen
-            $sqlFile = __DIR__ . '/database.sql';
+            // SQL-Datei einlesen (Pfad korrigiert)
+            $sqlFile = __DIR__ . '/database.sql'; // Wir sind bereits im install-Verzeichnis
+            
+            // Debug-Ausgabe
+            error_log("SQL File Path: " . $sqlFile);
+            error_log("File exists: " . (file_exists($sqlFile) ? 'yes' : 'no'));
+            
             if (!file_exists($sqlFile)) {
                 throw new Exception("SQL-Datei nicht gefunden: $sqlFile");
             }
@@ -209,7 +214,15 @@ class Installer {
             );
             
             foreach ($statements as $statement) {
-                $pdo->exec($statement);
+                try {
+                    if (!empty(trim($statement))) {
+                        $pdo->exec($statement);
+                    }
+                } catch (PDOException $e) {
+                    error_log("Error executing statement: " . $statement);
+                    error_log("Error message: " . $e->getMessage());
+                    throw $e;
+                }
             }
             
             $_SESSION['install_step'] = 4;
@@ -221,7 +234,7 @@ class Installer {
             return [
                 'success' => false,
                 'message' => 'Datenbankinstallation fehlgeschlagen:',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage() . "\nPrüfen Sie die PHP-Fehlerprotokolle für weitere Details."
             ];
         }
     }
