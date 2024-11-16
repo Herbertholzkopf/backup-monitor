@@ -21,27 +21,46 @@ echo -e "${YELLOW}System wird aktualisiert...${NC}"
 apt-get update
 apt-get upgrade -y
 
+# PHP Repository hinzufügen
+echo -e "${YELLOW}Füge PHP Repository hinzu...${NC}"
+apt-get install -y software-properties-common
+add-apt-repository -y ppa:ondrej/php
+apt-get update
+
 # Benötigte Pakete installieren
 echo -e "${YELLOW}Installiere benötigte Pakete...${NC}"
-apt-get install -y nginx php8.2-fpm php8.2-mysql php8.2-imap php8.2-mbstring php8.2-xml php8.2-curl mysql-server composer unzip
+apt-get install -y nginx php8.2 php8.2-fpm php8.2-mysql php8.2-imap php8.2-mbstring php8.2-xml php8.2-curl mysql-server composer unzip git
 
 # PHP-FPM Konfiguration
 echo -e "${YELLOW}Konfiguriere PHP-FPM...${NC}"
 sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php/8.2/fpm/php.ini
 systemctl restart php8.2-fpm
 
-# MySQL Sicherheit
+# MySQL Konfiguration
 echo -e "${YELLOW}Konfiguriere MySQL...${NC}"
-mysql_secure_installation
+if ! command -v mysql &> /dev/null; then
+    echo -e "${RED}MySQL ist nicht installiert. Installation wird abgebrochen.${NC}"
+    exit 1
+fi
+
+# MySQL Root Passwort setzen (optional, kann angepasst werden)
+echo -e "${YELLOW}MySQL Root Passwort setzen...${NC}"
+mysql --user=root <<_EOF_
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'your_root_password';
+DELETE FROM mysql.user WHERE User='';
+DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test\\_%';
+FLUSH PRIVILEGES;
+_EOF_
 
 # Backup-Monitor Datenbank und Benutzer erstellen
 echo -e "${YELLOW}Erstelle Datenbank und Benutzer...${NC}"
-read -p "MySQL Root Passwort: " mysqlpass
 read -p "Backup-Monitor Datenbank-Benutzer Passwort: " dbpass
 
-mysql -uroot -p$mysqlpass <<EOF
-CREATE DATABASE backup_monitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'backup_monitor'@'localhost' IDENTIFIED BY '$dbpass';
+mysql --user=root <<EOF
+CREATE DATABASE IF NOT EXISTS backup_monitor CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'backup_monitor'@'localhost' IDENTIFIED BY '$dbpass';
 GRANT ALL PRIVILEGES ON backup_monitor.* TO 'backup_monitor'@'localhost';
 FLUSH PRIVILEGES;
 EOF
