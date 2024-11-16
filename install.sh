@@ -143,6 +143,7 @@ nginx -t && systemctl restart nginx
 
 
 # Composer installieren und Abhängigkeiten installieren
+cd /var/www/backup-monitor/
 composer install
 
 # Berechtigungen aktualisieren
