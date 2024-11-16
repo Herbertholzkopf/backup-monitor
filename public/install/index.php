@@ -18,7 +18,7 @@ class Installer {
         1 => 'Systemanforderungen prüfen',
         2 => 'Datenbank-Konfiguration',
         3 => 'Datenbank-Installation',
-        4 => 'Installation abschließen'  
+        5 => 'Installation abschließen'  
     ];
     
     private $requiredExtensions = [
@@ -45,11 +45,9 @@ class Installer {
             case 1:
                 return $this->checkRequirements();
             case 2:
-                return $this->configureDatabase(); // Tippfehler korrigiert
+                return $this->configureDatabase();
             case 3:
                 return $this->installDatabase();
-            case 4:
-                return $this->createAdminAccount();
             case 5:
                 return $this->finishInstallation();
             default:
@@ -292,74 +290,26 @@ class Installer {
         }
     }
     
-    private function createAdminAccount() {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            // Admin-Account erstellen
-            $username = $_POST['username'];
-            $password = password_hash($_POST['password'], PASSWORD_DEFAULT);
-            
-            try {
-                $config = $_SESSION['db_config'];
-                $pdo = new PDO(
-                    "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
-                    $config['username'],
-                    $config['password']
-                );
-                
-                $stmt = $pdo->prepare("INSERT INTO users (username, password, is_admin) VALUES (?, ?, 1)");
-                $stmt->execute([$username, $password]);
-                
-                $_SESSION['install_step'] = 5;
-                return [
-                    'success' => true,
-                    'message' => 'Admin-Account erfolgreich erstellt!'
-                ];
-            } catch (PDOException $e) {
-                return [
-                    'success' => false,
-                    'message' => 'Fehler beim Erstellen des Admin-Accounts:',
-                    'error' => $e->getMessage()
-                ];
-            }
-        }
-        
-        // Formular anzeigen
-        return [
-            'success' => true,
-            'showForm' => true,
-            'form' => $this->getAdminForm()
-        ];
-    }
-    
-    private function getAdminForm() {
-        return '
-            <form method="post" class="space-y-4">
-                <div>
-                    <label for="username">Admin Username:</label>
-                    <input type="text" name="username" id="username" required>
-                </div>
-                <div>
-                    <label for="password">Admin Password:</label>
-                    <input type="password" name="password" id="password" required>
-                </div>
-                <button type="submit">Admin-Account erstellen</button>
-            </form>
-        ';
-    }
-    
     private function finishInstallation() {
-        // Installation abschließen
+        // Installation abschließen und Session bereinigen
         unset($_SESSION['install_step']);
         unset($_SESSION['db_config']);
         
         return [
             'success' => true,
             'message' => 'Installation erfolgreich abgeschlossen!',
-            'note' => 'Bitte löschen Sie das /install Verzeichnis aus Sicherheitsgründen.'
+            'isFinished' => true, // Neues Flag für den letzten Schritt
+            'notes' => [
+                'Bitte löschen Sie aus Sicherheitsgründen das /install Verzeichnis mit folgendem Befehl:',
+                'rm -rf ' . __DIR__,
+                'Die Anwendung ist nun unter der folgenden URL erreichbar:',
+                'http://' . $_SERVER['HTTP_HOST'] . '/'
+            ]
         ];
     }
-}
 
+}
+  
 // Installation ausführen
 $installer = new Installer();
 $result = $installer->run();
@@ -380,27 +330,44 @@ $result = $installer->run();
             <h1 class="text-2xl font-bold text-center">Backup-Monitor Installation</h1>
             
             <div class="space-y-4">
-                <?php if (isset($result['success'])): ?>
-                    <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
-                        <p><?= htmlspecialchars($result['message']) ?></p>
-                        
-                        <?php if (!$result['success'] && isset($result['error'])): ?>
-                            <p class="mt-2 font-bold">Fehler: <?= htmlspecialchars($result['error']) ?></p>
-                        <?php endif; ?>
-                        
-                        <?php if ($result['success'] && !isset($result['showForm'])): ?>
-                            <form method="post" class="mt-4">
-                                <button type="submit" name="next" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                                    Weiter
-                                </button>
-                            </form>
-                        <?php endif; ?>
-                    </div>
-                <?php endif; ?>
+            <?php if (isset($result['success'])): ?>
+                <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
+                    <p class="text-lg font-semibold"><?= htmlspecialchars($result['message']) ?></p>
+                    
+                    <?php if (!$result['success'] && isset($result['error'])): ?>
+                        <p class="mt-2 font-bold">Fehler: <?= htmlspecialchars($result['error']) ?></p>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($result['notes'])): ?>
+                        <div class="mt-4 space-y-2">
+                            <?php foreach ($result['notes'] as $note): ?>
+                                <p><?= htmlspecialchars($note) ?></p>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php endif; ?>
+                    
+                    <?php if ($result['success'] && !isset($result['showForm']) && !isset($result['isFinished'])): ?>
+                        <form method="post" class="mt-4">
+                            <button type="submit" name="next" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                Weiter
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($result['isFinished'])): ?>
+                        <div class="mt-6">
+                            <a href="/" class="inline-block px-6 py-3 bg-green-500 text-white rounded hover:bg-green-600">
+                                Zur Anwendung
+                            </a>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
 
-                <?php if (isset($result['showForm'])): ?>
-                    <?= $result['form'] ?>
-                <?php endif; ?>
+            <?php if (isset($result['showForm'])): ?>
+                <?= $result['form'] ?>
+            <?php endif; ?>
+
             </div>
         </div>
     </div>
