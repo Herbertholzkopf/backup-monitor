@@ -1,0 +1,42 @@
+Die Models haben folgende Hauptfunktionen:
+
+BaseModel:
+
+Grundlegende CRUD-Operationen (Create, Read, Update, Delete)
+Transaktionsmanagement
+Fehlerbehandlung
+Flexible Datenbankabfragen
+
+
+Customer:
+
+Verwaltung von Kundeninformationen
+Abrufen zugehöriger Backup-Jobs
+Dashboard-Daten für Kunden
+
+
+BackupJob:
+
+Job-Verwaltung
+Verknüpfung mit Kunden und Backup-Typen
+Suchfunktion für Mail-Zuordnung
+Historie der Backup-Ergebnisse
+
+
+BackupType:
+
+Verwaltung von Backup-Arten
+Statistiken über verwendete Backup-Typen
+
+
+Mail:
+
+Speicherung und Verwaltung eingehender E-Mails
+Verarbeitung-Status-Tracking
+
+
+BackupResult:
+
+Speicherung der Backup-Ergebnisse
+Statistische Auswertungen
+Notizen-Verwaltung

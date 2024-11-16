@@ -1,0 +1,30 @@
+Die Controller haben folgende Hauptfunktionalitäten:
+
+BaseController:
+
+Request-Parsing
+Response-Handling
+Fehlerbehandlung
+
+
+DashboardController:
+
+Übersichtsseite mit Statistiken
+Aggregierte Daten aller Kunden und Jobs
+
+
+CustomerController:
+
+CRUD-Operationen für Kunden
+Validierung der Eingaben
+
+
+BackupJobController:
+
+Verwaltung von Backup-Jobs
+Ergebnisabfragen
+
+
+BackupResultController:
+
+Notizen-Update für Backup-Ergebnisse

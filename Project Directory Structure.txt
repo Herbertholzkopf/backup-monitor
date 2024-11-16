@@ -1,0 +1,40 @@
+backup-monitor/
+├── config/
+│   ├── database.php
+│   └── config.php
+├── public/
+│   ├── index.php
+│   ├── assets/
+│   │   ├── css/
+│   │   └── js/
+│   └── .htaccess
+├── src/
+│   ├── Controllers/
+│   │   ├── CustomerController.php
+│   │   ├── BackupJobController.php
+│   │   ├── BackupTypeController.php
+│   │   └── DashboardController.php
+│   ├── Models/
+│   │   ├── Customer.php
+│   │   ├── BackupJob.php
+│   │   ├── BackupType.php
+│   │   ├── Mail.php
+│   │   └── BackupResult.php
+│   ├── Services/
+│   │   ├── MailProcessor.php
+│   │   └── BackupAnalyzer.php
+│   └── Views/
+│       ├── dashboard/
+│       ├── customers/
+│       ├── backup-jobs/
+│       └── settings/
+├── install/
+│   ├── index.php
+│   ├── database.sql
+│   └── check.php
+├── cron/
+│   ├── fetch_mails.php
+│   └── analyze_mails.php
+├── vendor/
+├── composer.json
+└── README.md
