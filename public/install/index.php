@@ -350,27 +350,23 @@ $result = $installer->run();
                     <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
                         <p><?= htmlspecialchars($result['message']) ?></p>
                         
-                        <?php if (isset($result['success'])): ?>
-                            <div class="p-4 rounded <?= $result['success'] ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' ?>">
-                                <p><?= htmlspecialchars($result['message']) ?></p>
-                                
-                                <?php if (!$result['success'] && isset($result['error'])): ?>
-                                    <p class="mt-2 font-bold">Fehler: <?= htmlspecialchars($result['error']) ?></p>
-                                <?php endif; ?>
-                                
-                                <?php if ($result['success'] && !isset($result['showForm'])): ?>
-                                    <form method="post" class="mt-4">
-                                        <button type="submit" name="next" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
-                                            Weiter
-                                        </button>
-                                    </form>
-                                <?php endif; ?>
-                            </div>
+                        <?php if (!$result['success'] && isset($result['error'])): ?>
+                            <p class="mt-2 font-bold">Fehler: <?= htmlspecialchars($result['error']) ?></p>
                         <?php endif; ?>
+                        
+                        <?php if ($result['success'] && !isset($result['showForm'])): ?>
+                            <form method="post" class="mt-4">
+                                <button type="submit" name="next" class="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600">
+                                    Weiter
+                                </button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
-                        <?php if (isset($result['showForm'])): ?>
-                            <?= $result['form'] ?>
-                        <?php endif; ?>
+                <?php if (isset($result['showForm'])): ?>
+                    <?= $result['form'] ?>
+                <?php endif; ?>
             </div>
         </div>
     </div>
