@@ -133,18 +133,13 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     
                     const response = await fetch('/api/dashboard');
                     const result = await response.json();
-                    
-                    console.log('API response:', result); // Debug-Ausgabe
+                    console.log('API response:', result); // Debug
                     
                     if (result.success) {
+                        // Direkt die Struktur aus der API übernehmen
                         setData({
-                            stats: {
-                                total: parseInt(result.stats.total) || 0,
-                                success: parseInt(result.stats.success) || 0,
-                                warnings: parseInt(result.stats.warnings) || 0,
-                                errors: parseInt(result.stats.errors) || 0
-                            },
-                            customers: Array.isArray(result.data) ? result.data : []
+                            stats: result.stats,    // Keine Umwandlung nötig
+                            customers: result.data   // Direkt das data-Array verwenden
                         });
                     } else {
                         setError(result.error || 'Ein Fehler ist aufgetreten');
