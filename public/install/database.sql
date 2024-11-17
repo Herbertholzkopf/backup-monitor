@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS customers (
 CREATE TABLE IF NOT EXISTS backup_types (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
+    icon VARCHAR(50),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -33,6 +34,9 @@ CREATE TABLE IF NOT EXISTS mails (
     date DATETIME NOT NULL,
     subject TEXT,
     content TEXT,
+    content_type VARCHAR(50),
+    has_attachment BOOLEAN DEFAULT FALSE,
+    attachment_path VARCHAR(255),
     processed BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -45,14 +49,30 @@ CREATE TABLE IF NOT EXISTS backup_results (
     date DATE NOT NULL,
     time TIME NOT NULL,
     note TEXT,
+    size_mb DECIMAL(10,2),
+    duration_minutes INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (backup_job_id) REFERENCES backup_jobs(id) ON DELETE CASCADE,
     FOREIGN KEY (mail_id) REFERENCES mails(id)
 );
 
-INSERT INTO backup_types (name) VALUES 
-    ('Proxmox Backup'),
-    ('Veeam Backup'),
-    ('Veeam Agent'),
-    ('Synology HyperBackup'),
-    ('Synaxon CloudBackup');
+INSERT INTO backup_types (name, icon) VALUES 
+    ('Proxmox Backup', 'server'),
+    ('Veeam Backup', 'database'),
+    ('Veeam Agent', 'laptop'),
+    ('Synology HyperBackup', 'nas'),
+    ('Synaxon CloudBackup', 'cloud');
+
+INSERT INTO customers (name, number, note) VALUES 
+    ('Musterfirma GmbH', 'KD-001', 'Beispiel-Kunde'),
+    ('Beispiel AG', 'KD-002', 'Zweiter Beispiel-Kunde');
+
+INSERT INTO backup_jobs (name, customer_id, backup_type_id, email) VALUES 
+    ('Server-Backup', 1, 2, 'backup@musterfirma.de'), 
+    ('Exchange Online', 1, 5, 'cloud@musterfirma.de');
+
+INSERT INTO backup_results (backup_job_id, status, date, time, note, size_mb, duration_minutes) VALUES 
+    (1, 'success', CURDATE(), '22:15:00', 'Erfolgreiches Backup', 1024.50, 45),
+    (1, 'warning', DATE_SUB(CURDATE(), INTERVAL 1 DAY), '22:15:00', 'Warnung: Große Änderungen', 1124.75, 52),
+    (1, 'success', DATE_SUB(CURDATE(), INTERVAL 2 DAY), '22:15:00', 'Erfolgreiches Backup', 1018.25, 43),
+    (1, 'success', DATE_SUB(CURDATE(), INTERVAL 3 DAY), '22:15:00', 'Erfolgreiches Backup', 1015.75, 44);
