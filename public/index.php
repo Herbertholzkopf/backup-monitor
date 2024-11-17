@@ -109,7 +109,6 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
     
     <script type="text/babel">
         const Dashboard = () => {
-            // Initialer State mit Standardwerten
             const [data, setData] = React.useState({
                 stats: {
                     total: 0,
@@ -130,18 +129,22 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
             const fetchData = async () => {
                 try {
                     setLoading(true);
+                    setError(null);
+                    
                     const response = await fetch('/api/dashboard');
                     const result = await response.json();
+                    
+                    console.log('API response:', result); // Debug-Ausgabe
                     
                     if (result.success) {
                         setData({
                             stats: {
-                                total: Number(result.stats.total) || 0,
-                                success: Number(result.stats.success) || 0,
-                                warnings: Number(result.stats.warnings) || 0,
-                                errors: Number(result.stats.errors) || 0
+                                total: parseInt(result.stats.total) || 0,
+                                success: parseInt(result.stats.success) || 0,
+                                warnings: parseInt(result.stats.warnings) || 0,
+                                errors: parseInt(result.stats.errors) || 0
                             },
-                            customers: result.data || []
+                            customers: Array.isArray(result.data) ? result.data : []
                         });
                     } else {
                         setError(result.error || 'Ein Fehler ist aufgetreten');
@@ -207,14 +210,14 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
 
                     {/* Customer List */}
                     <div className="space-y-6">
-                        {data.customers.map((customerData) => (
+                        {data.customers && data.customers.map((customerData) => (
                             <div key={customerData.customer.id} className="bg-white rounded-lg shadow-lg p-6">
                                 <div className="flex items-center gap-2 mb-6">
                                     <h2 className="text-xl font-semibold">{customerData.customer.name}</h2>
                                     <span className="text-sm text-gray-500">({customerData.customer.number})</span>
                                 </div>
 
-                                {customerData.jobs && customerData.jobs.length > 0 ? (
+                                {Array.isArray(customerData.jobs) && customerData.jobs.length > 0 ? (
                                     <div className="space-y-6">
                                         {customerData.jobs.map((job) => (
                                             <div key={job.job_id} className="mb-6 last:mb-0">
@@ -231,7 +234,7 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                                                         onMouseEnter={() => setActiveTooltip(job.job_id)}
                                                         onMouseLeave={() => setActiveTooltip(null)}
                                                     >
-                                                        {job.runs_count > 1 && (
+                                                        {parseInt(job.runs_count) > 1 && (
                                                             <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
                                                                 {job.runs_count}
                                                             </div>
