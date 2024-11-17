@@ -250,21 +250,58 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                                         </div>
 
                                         <div className="flex gap-1">
-                                            {job.results && job.results.map((result, index) => (
+                                        {job.results && job.results.map((result, index) => {
+                                            // Berechne die Position basierend auf dem Index
+                                            const isLastInRow = (index + 1) % 8 === 0;  // Annahme: 8 Items pro Reihe
+                                            const isNearEnd = index % 8 >= 5;           // Letzten 3 in der Reihe
+
+                                            return (
                                                 <div 
                                                     key={index}
-                                                    className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(result.status)}`}
+                                                    className="relative"
                                                     onMouseEnter={() => setActiveTooltip(`${job.job_id}-${index}`)}
                                                     onMouseLeave={() => setActiveTooltip(null)}
                                                 >
+                                                    <div className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(result.status)}`}>
+                                                        {result.runs_count > 1 && (
+                                                            <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
+                                                                {result.runs_count}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
                                                     {activeTooltip === `${job.job_id}-${index}` && (
-                                                        <div className="absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 -left-32">
+                                                        <div className={`absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 
+                                                            ${isNearEnd ? '-left-64' : 'left-0'}`}
+                                                        >
                                                             <div className="space-y-2">
-                                                                <div>Datum: {result.date}</div>
-                                                                <div>Zeit: {result.time}</div>
-                                                                <div>Status: {result.status}</div>
-                                                                <div>Größe: {result.size_mb} MB</div>
-                                                                <div>Dauer: {result.duration_minutes} min</div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-semibold">Datum:</span>
+                                                                    <span>{result.date}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-semibold">Zeit:</span>
+                                                                    <span>{result.time}</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-semibold">Status:</span>
+                                                                    <span className={
+                                                                        result.status === 'success' ? 'text-green-600' :
+                                                                        result.status === 'warning' ? 'text-yellow-600' :
+                                                                        'text-red-600'
+                                                                    }>
+                                                                        {result.status === 'success' ? 'Erfolgreich' :
+                                                                        result.status === 'warning' ? 'Warnung' : 'Fehler'}
+                                                                    </span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-semibold">Größe:</span>
+                                                                    <span>{result.size_mb} MB</span>
+                                                                </div>
+                                                                <div className="flex justify-between">
+                                                                    <span className="font-semibold">Dauer:</span>
+                                                                    <span>{result.duration_minutes} min</span>
+                                                                </div>
                                                                 <div className="pt-2">
                                                                     <textarea
                                                                         className="w-full p-2 text-sm border rounded"
@@ -277,7 +314,8 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                                                         </div>
                                                     )}
                                                 </div>
-                                            ))}
+                                            );
+                                        })}
                                         </div>
                                     </div>
                                 ))}
