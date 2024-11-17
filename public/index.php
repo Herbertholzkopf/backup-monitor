@@ -109,10 +109,18 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
     
     <script type="text/babel">
         const Dashboard = () => {
+            // Initialer State mit Standardwerten
             const [data, setData] = React.useState({
-                stats: { total: 0, success: 0, warnings: 0, errors: 0 },
+                stats: {
+                    total: 0,
+                    success: 0,
+                    warnings: 0,
+                    errors: 0
+                },
                 customers: []
             });
+            const [loading, setLoading] = React.useState(true);
+            const [error, setError] = React.useState(null);
             const [activeTooltip, setActiveTooltip] = React.useState(null);
 
             React.useEffect(() => {
@@ -121,17 +129,28 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
 
             const fetchData = async () => {
                 try {
+                    setLoading(true);
                     const response = await fetch('/api/dashboard');
                     const result = await response.json();
+                    
                     if (result.success) {
-                        console.log('Fetched data:', result); // Debug-Ausgabe
                         setData({
-                            stats: result.stats,
+                            stats: {
+                                total: Number(result.stats.total) || 0,
+                                success: Number(result.stats.success) || 0,
+                                warnings: Number(result.stats.warnings) || 0,
+                                errors: Number(result.stats.errors) || 0
+                            },
                             customers: result.data || []
                         });
+                    } else {
+                        setError(result.error || 'Ein Fehler ist aufgetreten');
                     }
                 } catch (error) {
                     console.error('Error fetching data:', error);
+                    setError('Fehler beim Laden der Daten');
+                } finally {
+                    setLoading(false);
                 }
             };
 
@@ -144,7 +163,17 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                 }
             };
 
-            console.log('Current data:', data); // Debug-Ausgabe
+            if (loading) {
+                return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="text-xl text-gray-600">Lade Daten...</div>
+                </div>;
+            }
+
+            if (error) {
+                return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="text-xl text-red-600">{error}</div>
+                </div>;
+            }
 
             return (
                 <div className="min-h-screen bg-gray-50 p-6">
@@ -157,7 +186,7 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     </div>
 
                     {/* Stats Overview */}
-                    <div className="grid grid-cols-4 gap-4 mb-8">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Gesamt</div>
                             <div className="text-2xl font-bold">{data.stats.total}</div>
@@ -178,16 +207,16 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
 
                     {/* Customer List */}
                     <div className="space-y-6">
-                        {data.customers && data.customers.map((customerData) => (
+                        {data.customers.map((customerData) => (
                             <div key={customerData.customer.id} className="bg-white rounded-lg shadow-lg p-6">
                                 <div className="flex items-center gap-2 mb-6">
                                     <h2 className="text-xl font-semibold">{customerData.customer.name}</h2>
                                     <span className="text-sm text-gray-500">({customerData.customer.number})</span>
                                 </div>
 
-                                <div className="space-y-6">
-                                    {customerData.jobs && customerData.jobs.length > 0 ? (
-                                        customerData.jobs.map((job) => (
+                                {customerData.jobs?.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {customerData.jobs.map((job) => (
                                             <div key={job.job_id} className="mb-6 last:mb-0">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
@@ -210,11 +239,11 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                                                     </div>
                                                 </div>
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className="text-gray-500">Keine Backup-Jobs vorhanden</div>
-                                    )}
-                                </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-gray-500">Keine Backup-Jobs vorhanden</div>
+                                )}
                             </div>
                         ))}
                     </div>
