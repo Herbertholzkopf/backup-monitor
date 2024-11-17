@@ -214,7 +214,7 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                                     <span className="text-sm text-gray-500">({customerData.customer.number})</span>
                                 </div>
 
-                                {customerData.jobs?.length > 0 ? (
+                                {customerData.jobs && customerData.jobs.length > 0 ? (
                                     <div className="space-y-6">
                                         {customerData.jobs.map((job) => (
                                             <div key={job.job_id} className="mb-6 last:mb-0">
