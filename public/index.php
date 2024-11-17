@@ -98,80 +98,131 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Backup Monitor</title>
+    <title>Backup-Monitor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900">
+<body>
     <div id="root"></div>
+    
     <script type="text/babel">
         const Dashboard = () => {
-            const [data, setData] = React.useState([]);
+            const [data, setData] = React.useState({
+                stats: { total: 0, success: 0, warnings: 0, errors: 0 },
+                customers: []
+            });
+            const [activeTooltip, setActiveTooltip] = React.useState(null);
 
             React.useEffect(() => {
-                fetch('/api/dashboard')
-                    .then(res => res.json())
-                    .then(json => {
-                        if (json.success) setData(json.data);
-                    })
-                    .catch(console.error);
+                fetchData();
             }, []);
 
+            const fetchData = async () => {
+                try {
+                    const response = await fetch('/api/dashboard');
+                    const result = await response.json();
+                    if (result.success) {
+                        console.log('Fetched data:', result); // Debug-Ausgabe
+                        setData({
+                            stats: result.stats,
+                            customers: result.data || []
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                }
+            };
+
+            const getStatusColor = (status) => {
+                switch (status) {
+                    case 'success': return 'bg-green-500';
+                    case 'warning': return 'bg-yellow-500';
+                    case 'error': return 'bg-red-500';
+                    default: return 'bg-gray-300';
+                }
+            };
+
+            console.log('Current data:', data); // Debug-Ausgabe
+
             return (
-                <div className="p-6">
-                    <h1 className="text-2xl font-bold mb-4">Backup Monitor</h1>
-                    {data.map(({ customer, jobs }) => (
-                        <div key={customer.id} className="mb-6">
-                            <h2 className="text-xl font-semibold">{customer.name} ({customer.number})</h2>
-                            <p className="text-sm text-gray-600">{customer.note}</p>
-                            <div className="mt-4 space-y-4">
-                                {jobs.map(({ job_id, job_name, backup_type, results }) => (
-                                    <div key={job_id} className="p-4 border rounded-lg">
-                                        <h3 className="font-medium">{job_name} ({backup_type})</h3>
-                                        <table className="w-full mt-2 text-sm">
-                                            <thead>
-                                                <tr>
-                                                    <th className="text-left">Datum</th>
-                                                    <th className="text-left">Uhrzeit</th>
-                                                    <th className="text-left">Status</th>
-                                                    <th className="text-left">Größe (MB)</th>
-                                                    <th className="text-left">Dauer (Min)</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {results.map((result, idx) => (
-                                                    <tr key={idx} className="border-t">
-                                                        <td>{result.date}</td>
-                                                        <td>{result.time}</td>
-                                                        <td className={getStatusColor(result.status)}>
-                                                            {result.status}
-                                                        </td>
-                                                        <td>{result.size_mb}</td>
-                                                        <td>{result.duration_minutes}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                ))}
-                            </div>
+                <div className="min-h-screen bg-gray-50 p-6">
+                    {/* Header */}
+                    <div className="flex justify-between items-center mb-8">
+                        <h1 className="text-3xl font-bold">Backup Monitor</h1>
+                        <button className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600">
+                            Einstellungen
+                        </button>
+                    </div>
+
+                    {/* Stats Overview */}
+                    <div className="grid grid-cols-4 gap-4 mb-8">
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="text-sm text-gray-500">Gesamt</div>
+                            <div className="text-2xl font-bold">{data.stats.total}</div>
                         </div>
-                    ))}
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="text-sm text-gray-500">Erfolgreich</div>
+                            <div className="text-2xl font-bold text-green-600">{data.stats.success}</div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="text-sm text-gray-500">Warnungen</div>
+                            <div className="text-2xl font-bold text-yellow-600">{data.stats.warnings}</div>
+                        </div>
+                        <div className="bg-white p-4 rounded-lg shadow">
+                            <div className="text-sm text-gray-500">Fehler</div>
+                            <div className="text-2xl font-bold text-red-600">{data.stats.errors}</div>
+                        </div>
+                    </div>
+
+                    {/* Customer List */}
+                    <div className="space-y-6">
+                        {data.customers && data.customers.map((customerData) => (
+                            <div key={customerData.customer.id} className="bg-white rounded-lg shadow-lg p-6">
+                                <div className="flex items-center gap-2 mb-6">
+                                    <h2 className="text-xl font-semibold">{customerData.customer.name}</h2>
+                                    <span className="text-sm text-gray-500">({customerData.customer.number})</span>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {customerData.jobs && customerData.jobs.length > 0 ? (
+                                        customerData.jobs.map((job) => (
+                                            <div key={job.job_id} className="mb-6 last:mb-0">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                                                        {job.backup_type}
+                                                    </span>
+                                                    <h3 className="font-medium">{job.job_name}</h3>
+                                                </div>
+
+                                                <div className="flex gap-1">
+                                                    <div 
+                                                        className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(job.status)}`}
+                                                        onMouseEnter={() => setActiveTooltip(job.job_id)}
+                                                        onMouseLeave={() => setActiveTooltip(null)}
+                                                    >
+                                                        {job.runs_count > 1 && (
+                                                            <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
+                                                                {job.runs_count}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-gray-500">Keine Backup-Jobs vorhanden</div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         };
 
-        const getStatusColor = (status) => {
-            switch (status) {
-                case 'success': return 'text-green-500';
-                case 'warning': return 'text-yellow-500';
-                case 'error': return 'text-red-500';
-                default: return 'text-gray-500';
-            }
-        };
-
+        // Render the app
         ReactDOM.render(<Dashboard />, document.getElementById('root'));
     </script>
 </body>
