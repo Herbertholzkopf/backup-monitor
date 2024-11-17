@@ -1,11 +1,9 @@
 <?php
-
 // src/Models/Customer.php
 namespace App\Models;
 
 use \PDO;
 use \PDOException;
-
 
 class Customer extends BaseModel {
     protected $table = 'customers';
@@ -34,6 +32,8 @@ class Customer extends BaseModel {
                 br.date,
                 br.time,
                 br.note,
+                br.size_mb,
+                br.duration_minutes,
                 COUNT(br2.id) as runs_count
             FROM backup_jobs bj
             LEFT JOIN backup_types bt ON bj.backup_type_id = bt.id
@@ -42,7 +42,16 @@ class Customer extends BaseModel {
                 AND br.backup_job_id = br2.backup_job_id
             WHERE bj.customer_id = :customer_id
                 AND br.date >= DATE_SUB(CURRENT_DATE, INTERVAL 24 DAY)
-            GROUP BY bj.id, br.date
+            GROUP BY 
+                bj.id, 
+                bj.name, 
+                bt.name, 
+                br.status, 
+                br.date, 
+                br.time, 
+                br.note,
+                br.size_mb,
+                br.duration_minutes
             ORDER BY br.date DESC
         ");
         
