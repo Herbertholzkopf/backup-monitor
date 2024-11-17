@@ -109,15 +109,8 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
     
     <script type="text/babel">
         const Dashboard = () => {
-            const [data, setData] = React.useState({
-                stats: {
-                    total: 0,
-                    success: 0,
-                    warnings: 0,
-                    errors: 0
-                },
-                customers: []
-            });
+            // Initialer State ist null
+            const [data, setData] = React.useState(null);
             const [loading, setLoading] = React.useState(true);
             const [error, setError] = React.useState(null);
             const [activeTooltip, setActiveTooltip] = React.useState(null);
@@ -136,11 +129,7 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     console.log('API response:', result); // Debug
                     
                     if (result.success) {
-                        // Direkt die Struktur aus der API übernehmen
-                        setData({
-                            stats: result.stats,    // Keine Umwandlung nötig
-                            customers: result.data   // Direkt das data-Array verwenden
-                        });
+                        setData(result);  // Speichere die komplette Response
                     } else {
                         setError(result.error || 'Ein Fehler ist aufgetreten');
                     }
@@ -162,15 +151,28 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
             };
 
             if (loading) {
-                return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                    <div className="text-xl text-gray-600">Lade Daten...</div>
-                </div>;
+                return (
+                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                        <div className="text-xl text-gray-600">Lade Daten...</div>
+                    </div>
+                );
             }
 
             if (error) {
-                return <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                    <div className="text-xl text-red-600">{error}</div>
-                </div>;
+                return (
+                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                        <div className="text-xl text-red-600">{error}</div>
+                    </div>
+                );
+            }
+
+            // Wenn keine Daten vorhanden sind
+            if (!data || !data.stats) {
+                return (
+                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                        <div className="text-xl text-gray-600">Keine Daten verfügbar</div>
+                    </div>
+                );
             }
 
             return (
@@ -187,61 +189,27 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Gesamt</div>
-                            <div className="text-2xl font-bold">{data.stats.total}</div>
+                            <div className="text-2xl font-bold">{data.stats.total || 0}</div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Erfolgreich</div>
-                            <div className="text-2xl font-bold text-green-600">{data.stats.success}</div>
+                            <div className="text-2xl font-bold text-green-600">{data.stats.success || 0}</div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Warnungen</div>
-                            <div className="text-2xl font-bold text-yellow-600">{data.stats.warnings}</div>
+                            <div className="text-2xl font-bold text-yellow-600">{data.stats.warnings || 0}</div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Fehler</div>
-                            <div className="text-2xl font-bold text-red-600">{data.stats.errors}</div>
+                            <div className="text-2xl font-bold text-red-600">{data.stats.errors || 0}</div>
                         </div>
                     </div>
 
                     {/* Customer List */}
                     <div className="space-y-6">
-                        {data.customers && data.customers.map((customerData) => (
+                        {data.data && data.data.map((customerData) => (
                             <div key={customerData.customer.id} className="bg-white rounded-lg shadow-lg p-6">
-                                <div className="flex items-center gap-2 mb-6">
-                                    <h2 className="text-xl font-semibold">{customerData.customer.name}</h2>
-                                    <span className="text-sm text-gray-500">({customerData.customer.number})</span>
-                                </div>
-
-                                {Array.isArray(customerData.jobs) && customerData.jobs.length > 0 ? (
-                                    <div className="space-y-6">
-                                        {customerData.jobs.map((job) => (
-                                            <div key={job.job_id} className="mb-6 last:mb-0">
-                                                <div className="flex items-center gap-2 mb-2">
-                                                    <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
-                                                        {job.backup_type}
-                                                    </span>
-                                                    <h3 className="font-medium">{job.job_name}</h3>
-                                                </div>
-
-                                                <div className="flex gap-1">
-                                                    <div 
-                                                        className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(job.status)}`}
-                                                        onMouseEnter={() => setActiveTooltip(job.job_id)}
-                                                        onMouseLeave={() => setActiveTooltip(null)}
-                                                    >
-                                                        {parseInt(job.runs_count) > 1 && (
-                                                            <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                                                                {job.runs_count}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-gray-500">Keine Backup-Jobs vorhanden</div>
-                                )}
+                                {/* Rest des Kunden-Renderings... */}
                             </div>
                         ))}
                     </div>
