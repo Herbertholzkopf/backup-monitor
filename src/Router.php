@@ -2,6 +2,9 @@
 // src/Router.php
 namespace App;
 
+use \PDO;
+
+
 class Router {
     private $routes = [];
     private $db;

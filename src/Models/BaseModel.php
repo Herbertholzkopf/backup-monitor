@@ -3,8 +3,9 @@
 // src/Models/BaseModel.php
 namespace App\Models;
 
-use PDO;
-use PDOException;
+use \PDO;
+use \PDOException;
+
 
 abstract class BaseModel {
     protected $conn;

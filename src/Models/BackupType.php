@@ -3,6 +3,10 @@
 // src/Models/BackupType.php
 namespace App\Models;
 
+use \PDO;
+use \PDOException;
+
+
 class BackupType extends BaseModel {
     protected $table = 'backup_types';
     protected $fillable = ['name'];

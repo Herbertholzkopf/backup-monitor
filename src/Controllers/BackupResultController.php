@@ -3,7 +3,9 @@
 // src/Controllers/BackupResultController.php
 namespace App\Controllers;
 
+use \PDO;
 use App\Models\BackupResult;
+
 
 class BackupResultController extends BaseController {
     private $model;

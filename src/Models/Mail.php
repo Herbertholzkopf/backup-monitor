@@ -3,6 +3,10 @@
 // src/Models/Mail.php
 namespace App\Models;
 
+use \PDO;
+use \PDOException;
+
+
 class Mail extends BaseModel {
     protected $table = 'mails';
     protected $fillable = ['sender_email', 'date', 'subject', 'content', 'processed'];

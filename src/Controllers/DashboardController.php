@@ -3,8 +3,10 @@
 // src/Controllers/DashboardController.php
 namespace App\Controllers;
 
+use \PDO;
 use App\Models\Customer;
 use App\Models\BackupResult;
+
 
 class DashboardController extends BaseController {
     public function index() {

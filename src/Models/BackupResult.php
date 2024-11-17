@@ -3,6 +3,10 @@
 // src/Models/BackupResult.php
 namespace App\Models;
 
+use \PDO;
+use \PDOException;
+
+
 class BackupResult extends BaseModel {
     protected $table = 'backup_results';
     protected $fillable = [

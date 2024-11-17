@@ -3,6 +3,10 @@
 // src/Models/Customer.php
 namespace App\Models;
 
+use \PDO;
+use \PDOException;
+
+
 class Customer extends BaseModel {
     protected $table = 'customers';
     protected $fillable = ['name', 'number', 'note'];

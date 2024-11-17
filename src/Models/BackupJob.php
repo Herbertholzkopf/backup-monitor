@@ -3,6 +3,10 @@
 // src/Models/BackupJob.php
 namespace App\Models;
 
+use \PDO;
+use \PDOException;
+
+
 class BackupJob extends BaseModel {
     protected $table = 'backup_jobs';
     protected $fillable = [

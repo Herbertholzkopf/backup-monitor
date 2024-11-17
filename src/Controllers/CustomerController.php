@@ -3,7 +3,9 @@
 // src/Controllers/CustomerController.php
 namespace App\Controllers;
 
+use \PDO;
 use App\Models\Customer;
+
 
 class CustomerController extends BaseController {
     private $model;
