@@ -109,15 +109,33 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
     
     <script type="text/babel">
         const Dashboard = () => {
-            // Initialer State ist null
             const [data, setData] = React.useState(null);
             const [loading, setLoading] = React.useState(true);
             const [error, setError] = React.useState(null);
             const [activeTooltip, setActiveTooltip] = React.useState(null);
 
-            React.useEffect(() => {
-                fetchData();
-            }, []);
+            // Funktion zum Berechnen der Statistiken aus den Ergebnissen
+            const calculateStats = (customers) => {
+                let total = 0;
+                let success = 0;
+                let warnings = 0;
+                let errors = 0;
+
+                customers.forEach(customer => {
+                    Object.values(customer.jobs || {}).forEach(job => {
+                        if (job.results) {
+                            total += job.results.length;
+                            job.results.forEach(result => {
+                                if (result.status === 'success') success++;
+                                if (result.status === 'warning') warnings++;
+                                if (result.status === 'error') errors++;
+                            });
+                        }
+                    });
+                });
+
+                return { total, success, warnings, errors };
+            };
 
             const fetchData = async () => {
                 try {
@@ -126,10 +144,15 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     
                     const response = await fetch('/api/dashboard');
                     const result = await response.json();
-                    console.log('API response:', result); // Debug
+                    console.log('API response:', result);
                     
                     if (result.success) {
-                        setData(result);  // Speichere die komplette Response
+                        // Berechne die Stats aus den Daten
+                        const stats = calculateStats(result.data);
+                        setData({
+                            ...result,
+                            stats
+                        });
                     } else {
                         setError(result.error || 'Ein Fehler ist aufgetreten');
                     }
@@ -140,6 +163,10 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     setLoading(false);
                 }
             };
+
+            React.useEffect(() => {
+                fetchData();
+            }, []);
 
             const getStatusColor = (status) => {
                 switch (status) {
@@ -166,7 +193,6 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                 );
             }
 
-            // Wenn keine Daten vorhanden sind
             if (!data || !data.stats) {
                 return (
                     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -189,19 +215,19 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Gesamt</div>
-                            <div className="text-2xl font-bold">{data.stats.total || 0}</div>
+                            <div className="text-2xl font-bold">{data.stats.total}</div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Erfolgreich</div>
-                            <div className="text-2xl font-bold text-green-600">{data.stats.success || 0}</div>
+                            <div className="text-2xl font-bold text-green-600">{data.stats.success}</div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Warnungen</div>
-                            <div className="text-2xl font-bold text-yellow-600">{data.stats.warnings || 0}</div>
+                            <div className="text-2xl font-bold text-yellow-600">{data.stats.warnings}</div>
                         </div>
                         <div className="bg-white p-4 rounded-lg shadow">
                             <div className="text-sm text-gray-500">Fehler</div>
-                            <div className="text-2xl font-bold text-red-600">{data.stats.errors || 0}</div>
+                            <div className="text-2xl font-bold text-red-600">{data.stats.errors}</div>
                         </div>
                     </div>
 
@@ -209,7 +235,52 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     <div className="space-y-6">
                         {data.data && data.data.map((customerData) => (
                             <div key={customerData.customer.id} className="bg-white rounded-lg shadow-lg p-6">
-                                {/* Rest des Kunden-Renderings... */}
+                                <div className="flex items-center gap-2 mb-6">
+                                    <h2 className="text-xl font-semibold">{customerData.customer.name}</h2>
+                                    <span className="text-sm text-gray-500">({customerData.customer.number})</span>
+                                </div>
+
+                                {Object.values(customerData.jobs || {}).map((job) => (
+                                    <div key={job.job_id} className="mb-6 last:mb-0">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="px-3 py-1 bg-gray-100 rounded-full text-sm">
+                                                {job.backup_type}
+                                            </span>
+                                            <h3 className="font-medium">{job.job_name}</h3>
+                                        </div>
+
+                                        <div className="flex gap-1">
+                                            {job.results && job.results.map((result, index) => (
+                                                <div 
+                                                    key={index}
+                                                    className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(result.status)}`}
+                                                    onMouseEnter={() => setActiveTooltip(`${job.job_id}-${index}`)}
+                                                    onMouseLeave={() => setActiveTooltip(null)}
+                                                >
+                                                    {activeTooltip === `${job.job_id}-${index}` && (
+                                                        <div className="absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 -left-32">
+                                                            <div className="space-y-2">
+                                                                <div>Datum: {result.date}</div>
+                                                                <div>Zeit: {result.time}</div>
+                                                                <div>Status: {result.status}</div>
+                                                                <div>Größe: {result.size_mb} MB</div>
+                                                                <div>Dauer: {result.duration_minutes} min</div>
+                                                                <div className="pt-2">
+                                                                    <textarea
+                                                                        className="w-full p-2 text-sm border rounded"
+                                                                        value={result.note || ''}
+                                                                        placeholder="Notiz..."
+                                                                        readOnly
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ))}
                     </div>
