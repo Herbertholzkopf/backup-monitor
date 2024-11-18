@@ -1,3 +1,53 @@
+####################################
+# aktuelle Struktur:
+
+backup-monitor/
+├── config/
+│   ├── database.php
+│   └── mail.php
+├── cron/ (noch nicht erstellt)
+│   ├── fetch_mails.php
+│   └── analyze_mails.php
+├── public/
+│   ├── index.php
+│   ├── assets/
+│   │   ├── css/ (noch nicht erstellt bzw. bis jetzt noch nicht benötigt)
+│   │   └── js/
+│   └── install/
+│       ├── index.php
+│       └── database.sql
+├── src/
+│   ├── Controllers/
+│   │   ├── BaseController.php
+│   │   ├── BackupJobController.php
+│   │   ├── BackupResultController.php
+│   │   ├── CustomerController.php
+│   │   └── DashboardController.php
+│   ├── Models/
+│   │   ├── BaseModel.php
+│   │   ├── BackupJob.php
+│   │   ├── BackupResult.php
+│   │   ├── BackupType.php
+│   │   ├── Customer.php
+│   │   └── Mail.php
+│   ├── Router.php
+│   └── Views/
+│       ├── cache/
+│       ├── templates/
+│       └── BaseView.php
+├── vendor/
+├── composer.json
+├── README.md
+└── install.sh
+
+
+
+
+
+
+####################################
+# alte Struktur:
+
 backup-monitor/
 ├── config/
 │   ├── database.php
