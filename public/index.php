@@ -237,8 +237,7 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
 
             React.useEffect(() => {
                 const handleClickOutside = (event) => {
-                    if (isTooltipLocked && !event.target.closest('.tooltip-content')) {
-                        setIsTooltipLocked(false);
+                    if (!event.target.closest('.tooltip-content') && !event.target.closest('.status-square')) {
                         setActiveTooltip(null);
                     }
                 };
@@ -247,7 +246,7 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                 return () => {
                     document.removeEventListener('mousedown', handleClickOutside);
                 };
-            }, [isTooltipLocked]);
+            }, []);
 
             React.useEffect(() => {
                 fetchData();
@@ -262,29 +261,23 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                 }
             };
 
-            if (loading) {
-                return (
-                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                        <div className="text-xl text-gray-600">Lade Daten...</div>
-                    </div>
-                );
-            }
+            if (loading) return (
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="text-xl text-gray-600">Lade Daten...</div>
+                </div>
+            );
 
-            if (error) {
-                return (
-                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                        <div className="text-xl text-red-600">{error}</div>
-                    </div>
-                );
-            }
+            if (error) return (
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="text-xl text-red-600">{error}</div>
+                </div>
+            );
 
-            if (!data || !data.stats) {
-                return (
-                    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                        <div className="text-xl text-gray-600">Keine Daten verfügbar</div>
-                    </div>
-                );
-            }
+            if (!data || !data.stats) return (
+                <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                    <div className="text-xl text-gray-600">Keine Daten verfügbar</div>
+                </div>
+            );
 
             return (
                 <div className="min-h-screen bg-gray-50 p-6">
@@ -339,17 +332,11 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                                                 const isNearEnd = index % 8 >= 5;
 
                                                 return (
-                                                    <div 
-                                                        key={index}
-                                                        className="relative"
-                                                        onMouseEnter={() => !isTooltipLocked && setActiveTooltip(`${job.job_id}-${index}`)}
-                                                        onMouseLeave={() => !isTooltipLocked && setActiveTooltip(null)}
-                                                        onClick={() => {
-                                                            setIsTooltipLocked(true);
-                                                            setActiveTooltip(`${job.job_id}-${index}`);
-                                                        }}
-                                                    >
-                                                        <div className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(result.status)}`}>
+                                                    <div key={index} className="relative">
+                                                        <div 
+                                                            className={`w-8 h-8 rounded cursor-pointer status-square ${getStatusColor(result.status)}`}
+                                                            onClick={() => setActiveTooltip(`${job.job_id}-${index}`)}
+                                                        >
                                                             {result.runs_count > 1 && (
                                                                 <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
                                                                     {result.runs_count}
@@ -431,7 +418,6 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
             );
         };
 
-        // Render the app
         ReactDOM.render(<Dashboard />, document.getElementById('root'));
     </script>
 </body>
