@@ -25,16 +25,31 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
 
         // SQL-Abfrage
         $query = $db->prepare("
-            SELECT c.id AS customer_id, c.name AS customer_name, c.number AS customer_number, 
-                   c.note AS customer_note, c.created_at AS customer_created_at,
-                   b.id AS job_id, b.name AS job_name, b.email AS job_email, 
-                   bt.name AS backup_type, r.status, r.date, r.time, 
-                   r.note AS result_note, r.size_mb, r.duration_minutes
+            SELECT 
+                c.id AS customer_id, 
+                c.name AS customer_name, 
+                c.number AS customer_number,
+                c.note AS customer_note, 
+                c.created_at AS customer_created_at,
+                b.id AS job_id, 
+                b.name AS job_name, 
+                b.email AS job_email,
+                bt.name AS backup_type, 
+                r.status, 
+                r.date, 
+                r.time,
+                r.id AS result_id,
+                r.note AS result_note, 
+                r.size_mb, 
+                r.duration_minutes,
+                COUNT(r2.id) as runs_count
             FROM customers c
             LEFT JOIN backup_jobs b ON c.id = b.customer_id
             LEFT JOIN backup_types bt ON b.backup_type_id = bt.id
             LEFT JOIN backup_results r ON b.id = r.backup_job_id
-            ORDER BY c.id, b.id, r.date DESC
+            LEFT JOIN backup_results r2 ON r.date = r2.date AND r.backup_job_id = r2.backup_job_id
+            GROUP BY c.id, b.id, r.id, r.date
+            ORDER BY c.id, b.id, r.date DESC, r.time DESC
         ");
         $query->execute();
         $rows = $query->fetchAll(PDO::FETCH_ASSOC);
@@ -69,12 +84,14 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
 
                 if (!empty($row['status'])) {
                     $result[$customerId]['jobs'][$jobId]['results'][] = [
+                        'id' => $row['result_id'],  // Wichtig für das Speichern von Notizen
                         'status' => $row['status'],
                         'date' => $row['date'],
                         'time' => $row['time'],
                         'note' => $row['result_note'],
                         'size_mb' => $row['size_mb'],
-                        'duration_minutes' => $row['duration_minutes']
+                        'duration_minutes' => $row['duration_minutes'],
+                        'runs_count' => $row['runs_count']
                     ];
                 }
             }
@@ -83,6 +100,43 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
         // JSON-Antwort zurückgeben
         header('Content-Type: application/json');
         echo json_encode(['success' => true, 'data' => array_values($result)]);
+    } catch (Exception $e) {
+        header('HTTP/1.1 500 Internal Server Error');
+        echo json_encode(['success' => false, 'error' => $e->getMessage()]);
+        error_log($e->getMessage());
+    }
+    exit;
+}
+
+if (strpos($requestUri, '/api/backup-results/note') === 0) {
+    try {
+        require_once __DIR__ . '/../vendor/autoload.php';
+        $config = require_once __DIR__ . '/../config/database.php';
+        
+        // JSON-Daten lesen
+        $jsonData = file_get_contents('php://input');
+        $data = json_decode($jsonData, true);
+        
+        if (!isset($data['id']) || !isset($data['note'])) {
+            throw new Exception("ID und Notiz sind erforderlich");
+        }
+
+        $db = new PDO(
+            "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
+            $config['username'],
+            $config['password']
+        );
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $stmt = $db->prepare("UPDATE backup_results SET note = :note WHERE id = :id");
+        $success = $stmt->execute([
+            'id' => $data['id'],
+            'note' => $data['note']
+        ]);
+
+        header('Content-Type: application/json');
+        echo json_encode(['success' => $success]);
+        
     } catch (Exception $e) {
         header('HTTP/1.1 500 Internal Server Error');
         echo json_encode(['success' => false, 'error' => $e->getMessage()]);
@@ -113,6 +167,8 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
             const [loading, setLoading] = React.useState(true);
             const [error, setError] = React.useState(null);
             const [activeTooltip, setActiveTooltip] = React.useState(null);
+            const [isEditing, setIsEditing] = React.useState(false);
+            const [noteText, setNoteText] = React.useState('');
 
             // Funktion zum Berechnen der Statistiken aus den Ergebnissen
             const calculateStats = (customers) => {
@@ -161,6 +217,21 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                     setError('Fehler beim Laden der Daten');
                 } finally {
                     setLoading(false);
+                }
+            };
+
+            const saveNote = async (resultId, note) => {
+                try {
+                    const response = await fetch('/api/backup-results/note', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: resultId, note })
+                    });
+                    if (response.ok) {
+                        fetchData();
+                    }
+                } catch (error) {
+                    console.error('Error saving note:', error);
                 }
             };
 
@@ -271,18 +342,24 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                                                     </div>
 
                                                     {activeTooltip === `${job.job_id}-${index}` && (
-                                                        <div className={`absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 
-                                                            ${isNearEnd ? '-left-64' : 'left-0'}`}
+                                                        <div 
+                                                            className={`absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 ${isNearEnd ? '-left-64' : 'left-0'}`}
+                                                            onMouseEnter={() => setIsEditing(true)}
+                                                            onMouseLeave={() => !isEditing && setActiveTooltip(null)}
                                                         >
                                                             <div className="space-y-2">
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-semibold">Datum:</span>
-                                                                    <span>{result.date}</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-semibold">Zeit:</span>
-                                                                    <span>{result.time}</span>
-                                                                </div>
+                                                                {result.date && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="font-semibold">Datum:</span>
+                                                                        <span>{result.date}</span>
+                                                                    </div>
+                                                                )}
+                                                                {result.time && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="font-semibold">Zeit:</span>
+                                                                        <span>{result.time}</span>
+                                                                    </div>
+                                                                )}
                                                                 <div className="flex justify-between">
                                                                     <span className="font-semibold">Status:</span>
                                                                     <span className={
@@ -294,21 +371,35 @@ if (strpos($requestUri, '/api/dashboard') === 0) {
                                                                         result.status === 'warning' ? 'Warnung' : 'Fehler'}
                                                                     </span>
                                                                 </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-semibold">Größe:</span>
-                                                                    <span>{result.size_mb} MB</span>
-                                                                </div>
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-semibold">Dauer:</span>
-                                                                    <span>{result.duration_minutes} min</span>
-                                                                </div>
+                                                                {result.size_mb && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="font-semibold">Größe:</span>
+                                                                        <span>{parseFloat(result.size_mb).toFixed(2)} MB</span>
+                                                                    </div>
+                                                                )}
+                                                                {result.duration_minutes && (
+                                                                    <div className="flex justify-between">
+                                                                        <span className="font-semibold">Dauer:</span>
+                                                                        <span>{result.duration_minutes} min</span>
+                                                                    </div>
+                                                                )}
                                                                 <div className="pt-2">
                                                                     <textarea
                                                                         className="w-full p-2 text-sm border rounded"
                                                                         value={result.note || ''}
+                                                                        onChange={(e) => setNoteText(e.target.value)}
+                                                                        onBlur={() => saveNote(result.id, noteText)}
                                                                         placeholder="Notiz..."
-                                                                        readOnly
                                                                     />
+                                                                    <button 
+                                                                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                                        onClick={() => {
+                                                                            saveNote(result.id, noteText);
+                                                                            setIsEditing(false);
+                                                                        }}
+                                                                    >
+                                                                        Speichern
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         </div>
