@@ -1,14 +1,10 @@
-<?php
 // config/mail.php
+<?php
 return [
-    'host' => 'mail.example.com',
-    'port' => 995,
+    'server' => 'mail.example.com',
+    'port' => 993,
     'username' => 'backup@example.com',
-    'password' => 'your-secure-password',
-    'options' => [
-        'ssl' => [
-            'verify_peer' => false,
-            'verify_peer_name' => false
-        ]
-    ]
+    'password' => 'your-password',
+    'protocol' => 'imap',  // oder pop3
+    'encryption' => 'ssl'  // oder tls
 ];
