@@ -167,7 +167,7 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
             const [loading, setLoading] = React.useState(true);
             const [error, setError] = React.useState(null);
             const [activeTooltip, setActiveTooltip] = React.useState(null);
-            const [isEditing, setIsEditing] = React.useState(false);
+            const [isTooltipLocked, setIsTooltipLocked] = React.useState(false);
             const [noteText, setNoteText] = React.useState('');
 
             // Funktion zum Berechnen der Statistiken aus den Ergebnissen
@@ -234,6 +234,20 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                     console.error('Error saving note:', error);
                 }
             };
+
+            React.useEffect(() => {
+                const handleClickOutside = (event) => {
+                    if (isTooltipLocked && !event.target.closest('.tooltip-content')) {
+                        setIsTooltipLocked(false);
+                        setActiveTooltip(null);
+                    }
+                };
+
+                document.addEventListener('mousedown', handleClickOutside);
+                return () => {
+                    document.removeEventListener('mousedown', handleClickOutside);
+                };
+            }, [isTooltipLocked]);
 
             React.useEffect(() => {
                 fetchData();
@@ -321,92 +335,92 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                                         </div>
 
                                         <div className="flex gap-1">
-                                        {job.results && job.results.map((result, index) => {
-                                            // Berechne die Position basierend auf dem Index
-                                            const isLastInRow = (index + 1) % 8 === 0;  // Annahme: 8 Items pro Reihe
-                                            const isNearEnd = index % 8 >= 5;           // Letzten 3 in der Reihe
+                                            {job.results && job.results.map((result, index) => {
+                                                const isNearEnd = index % 8 >= 5;
 
-                                            return (
-                                                <div 
-                                                    key={index}
-                                                    className="relative"
-                                                    onMouseEnter={() => setActiveTooltip(`${job.job_id}-${index}`)}
-                                                    onMouseLeave={() => setActiveTooltip(null)}
-                                                >
-                                                    <div className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(result.status)}`}>
-                                                        {result.runs_count > 1 && (
-                                                            <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                                                                {result.runs_count}
+                                                return (
+                                                    <div 
+                                                        key={index}
+                                                        className="relative"
+                                                        onMouseEnter={() => !isTooltipLocked && setActiveTooltip(`${job.job_id}-${index}`)}
+                                                        onMouseLeave={() => !isTooltipLocked && setActiveTooltip(null)}
+                                                        onClick={() => {
+                                                            setIsTooltipLocked(true);
+                                                            setActiveTooltip(`${job.job_id}-${index}`);
+                                                        }}
+                                                    >
+                                                        <div className={`w-8 h-8 rounded cursor-pointer ${getStatusColor(result.status)}`}>
+                                                            {result.runs_count > 1 && (
+                                                                <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
+                                                                    {result.runs_count}
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {activeTooltip === `${job.job_id}-${index}` && (
+                                                            <div 
+                                                                className={`absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 tooltip-content ${isNearEnd ? '-left-64' : 'left-0'}`}
+                                                            >
+                                                                <div className="space-y-2">
+                                                                    {result.date && (
+                                                                        <div className="flex justify-between">
+                                                                            <span className="font-semibold">Datum:</span>
+                                                                            <span>{result.date}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {result.time && (
+                                                                        <div className="flex justify-between">
+                                                                            <span className="font-semibold">Zeit:</span>
+                                                                            <span>{result.time}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="flex justify-between">
+                                                                        <span className="font-semibold">Status:</span>
+                                                                        <span className={
+                                                                            result.status === 'success' ? 'text-green-600' :
+                                                                            result.status === 'warning' ? 'text-yellow-600' :
+                                                                            'text-red-600'
+                                                                        }>
+                                                                            {result.status === 'success' ? 'Erfolgreich' :
+                                                                            result.status === 'warning' ? 'Warnung' : 'Fehler'}
+                                                                        </span>
+                                                                    </div>
+                                                                    {result.size_mb && (
+                                                                        <div className="flex justify-between">
+                                                                            <span className="font-semibold">Größe:</span>
+                                                                            <span>{parseFloat(result.size_mb).toFixed(2)} MB</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {result.duration_minutes && (
+                                                                        <div className="flex justify-between">
+                                                                            <span className="font-semibold">Dauer:</span>
+                                                                            <span>{result.duration_minutes} min</span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="pt-2">
+                                                                        <textarea
+                                                                            className="w-full p-2 text-sm border rounded"
+                                                                            value={noteText || result.note || ''}
+                                                                            onChange={(e) => setNoteText(e.target.value)}
+                                                                            placeholder="Notiz..."
+                                                                        />
+                                                                        <button 
+                                                                            className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                                            onClick={() => {
+                                                                                saveNote(result.id, noteText);
+                                                                                setIsTooltipLocked(false);
+                                                                                setActiveTooltip(null);
+                                                                            }}
+                                                                        >
+                                                                            Speichern
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
-
-                                                    {activeTooltip === `${job.job_id}-${index}` && (
-                                                        <div 
-                                                            className={`absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 ${isNearEnd ? '-left-64' : 'left-0'}`}
-                                                            onMouseEnter={() => setIsEditing(true)}
-                                                            onMouseLeave={() => !isEditing && setActiveTooltip(null)}
-                                                        >
-                                                            <div className="space-y-2">
-                                                                {result.date && (
-                                                                    <div className="flex justify-between">
-                                                                        <span className="font-semibold">Datum:</span>
-                                                                        <span>{result.date}</span>
-                                                                    </div>
-                                                                )}
-                                                                {result.time && (
-                                                                    <div className="flex justify-between">
-                                                                        <span className="font-semibold">Zeit:</span>
-                                                                        <span>{result.time}</span>
-                                                                    </div>
-                                                                )}
-                                                                <div className="flex justify-between">
-                                                                    <span className="font-semibold">Status:</span>
-                                                                    <span className={
-                                                                        result.status === 'success' ? 'text-green-600' :
-                                                                        result.status === 'warning' ? 'text-yellow-600' :
-                                                                        'text-red-600'
-                                                                    }>
-                                                                        {result.status === 'success' ? 'Erfolgreich' :
-                                                                        result.status === 'warning' ? 'Warnung' : 'Fehler'}
-                                                                    </span>
-                                                                </div>
-                                                                {result.size_mb && (
-                                                                    <div className="flex justify-between">
-                                                                        <span className="font-semibold">Größe:</span>
-                                                                        <span>{parseFloat(result.size_mb).toFixed(2)} MB</span>
-                                                                    </div>
-                                                                )}
-                                                                {result.duration_minutes && (
-                                                                    <div className="flex justify-between">
-                                                                        <span className="font-semibold">Dauer:</span>
-                                                                        <span>{result.duration_minutes} min</span>
-                                                                    </div>
-                                                                )}
-                                                                <div className="pt-2">
-                                                                    <textarea
-                                                                        className="w-full p-2 text-sm border rounded"
-                                                                        value={result.note || ''}
-                                                                        onChange={(e) => setNoteText(e.target.value)}
-                                                                        onBlur={() => saveNote(result.id, noteText)}
-                                                                        placeholder="Notiz..."
-                                                                    />
-                                                                    <button 
-                                                                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                                                        onClick={() => {
-                                                                            saveNote(result.id, noteText);
-                                                                            setIsEditing(false);
-                                                                        }}
-                                                                    >
-                                                                        Speichern
-                                                                    </button>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                 ))}
