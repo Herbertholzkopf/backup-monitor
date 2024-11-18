@@ -170,7 +170,30 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
             const [isTooltipLocked, setIsTooltipLocked] = React.useState(false);
             const [noteText, setNoteText] = React.useState('');
 
-            // Funktion zum Berechnen der Statistiken aus den Ergebnissen
+            const groupResultsByDate = (results) => {
+                const grouped = {};
+                
+                results.forEach(result => {
+                    if (!grouped[result.date]) {
+                        grouped[result.date] = {
+                            results: [],
+                            status: result.status,
+                            time: result.time
+                        };
+                    }
+                    
+                    grouped[result.date].results.push(result);
+                    
+                    // Aktualisiere Status basierend auf der späteren Zeit
+                    if (result.time > grouped[result.date].time) {
+                        grouped[result.date].status = result.status;
+                        grouped[result.date].time = result.time;
+                    }
+                });
+                
+                return Object.values(grouped);
+            };
+
             const calculateStats = (customers) => {
                 let total = 0;
                 let success = 0;
@@ -180,11 +203,12 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                 customers.forEach(customer => {
                     Object.values(customer.jobs || {}).forEach(job => {
                         if (job.results) {
-                            total += job.results.length;
-                            job.results.forEach(result => {
-                                if (result.status === 'success') success++;
-                                if (result.status === 'warning') warnings++;
-                                if (result.status === 'error') errors++;
+                            const groupedResults = groupResultsByDate(job.results);
+                            total += groupedResults.length;
+                            groupedResults.forEach(group => {
+                                if (group.status === 'success') success++;
+                                if (group.status === 'warning') warnings++;
+                                if (group.status === 'error') errors++;
                             });
                         }
                     });
@@ -238,6 +262,7 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
             React.useEffect(() => {
                 const handleClickOutside = (event) => {
                     if (!event.target.closest('.tooltip-content') && !event.target.closest('.status-square')) {
+                        setIsTooltipLocked(false);
                         setActiveTooltip(null);
                     }
                 };
@@ -328,18 +353,21 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                                         </div>
 
                                         <div className="flex gap-1">
-                                            {job.results && job.results.map((result, index) => {
+                                            {job.results && groupResultsByDate(job.results).map((groupedResult, index) => {
                                                 const isNearEnd = index % 8 >= 5;
-
+                                                
                                                 return (
                                                     <div key={index} className="relative">
                                                         <div 
-                                                            className={`w-8 h-8 rounded cursor-pointer status-square ${getStatusColor(result.status)}`}
-                                                            onClick={() => setActiveTooltip(`${job.job_id}-${index}`)}
+                                                            className={`w-8 h-8 rounded cursor-pointer status-square ${getStatusColor(groupedResult.status)}`}
+                                                            onClick={() => {
+                                                                setIsTooltipLocked(true);
+                                                                setActiveTooltip(`${job.job_id}-${index}`);
+                                                            }}
                                                         >
-                                                            {result.runs_count > 1 && (
+                                                            {groupedResult.results.length > 1 && (
                                                                 <div className="absolute -top-2 -right-2 bg-blue-500 text-white rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                                                                    {result.runs_count}
+                                                                    {groupedResult.results.length}
                                                                 </div>
                                                             )}
                                                         </div>
@@ -348,60 +376,58 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                                                             <div 
                                                                 className={`absolute z-50 w-72 bg-white rounded-lg shadow-xl border p-4 mt-2 tooltip-content ${isNearEnd ? '-left-64' : 'left-0'}`}
                                                             >
-                                                                <div className="space-y-2">
-                                                                    {result.date && (
+                                                                {groupedResult.results.map((result, resultIndex) => (
+                                                                    <div key={resultIndex} className={`space-y-2 ${resultIndex > 0 ? 'mt-4 pt-4 border-t' : ''}`}>
                                                                         <div className="flex justify-between">
                                                                             <span className="font-semibold">Datum:</span>
                                                                             <span>{result.date}</span>
                                                                         </div>
-                                                                    )}
-                                                                    {result.time && (
                                                                         <div className="flex justify-between">
                                                                             <span className="font-semibold">Zeit:</span>
                                                                             <span>{result.time}</span>
                                                                         </div>
-                                                                    )}
-                                                                    <div className="flex justify-between">
-                                                                        <span className="font-semibold">Status:</span>
-                                                                        <span className={
-                                                                            result.status === 'success' ? 'text-green-600' :
-                                                                            result.status === 'warning' ? 'text-yellow-600' :
-                                                                            'text-red-600'
-                                                                        }>
-                                                                            {result.status === 'success' ? 'Erfolgreich' :
-                                                                            result.status === 'warning' ? 'Warnung' : 'Fehler'}
-                                                                        </span>
-                                                                    </div>
-                                                                    {result.size_mb && (
                                                                         <div className="flex justify-between">
-                                                                            <span className="font-semibold">Größe:</span>
-                                                                            <span>{parseFloat(result.size_mb).toFixed(2)} MB</span>
+                                                                            <span className="font-semibold">Status:</span>
+                                                                            <span className={
+                                                                                result.status === 'success' ? 'text-green-600' :
+                                                                                result.status === 'warning' ? 'text-yellow-600' :
+                                                                                'text-red-600'
+                                                                            }>
+                                                                                {result.status === 'success' ? 'Erfolgreich' :
+                                                                                result.status === 'warning' ? 'Warnung' : 'Fehler'}
+                                                                            </span>
                                                                         </div>
-                                                                    )}
-                                                                    {result.duration_minutes && (
-                                                                        <div className="flex justify-between">
-                                                                            <span className="font-semibold">Dauer:</span>
-                                                                            <span>{result.duration_minutes} min</span>
-                                                                        </div>
-                                                                    )}
-                                                                    <div className="pt-2">
-                                                                        <textarea
-                                                                            className="w-full p-2 text-sm border rounded"
-                                                                            value={noteText || result.note || ''}
-                                                                            onChange={(e) => setNoteText(e.target.value)}
-                                                                            placeholder="Notiz..."
-                                                                        />
-                                                                        <button 
-                                                                            className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                                                            onClick={() => {
-                                                                                saveNote(result.id, noteText);
-                                                                                setIsTooltipLocked(false);
-                                                                                setActiveTooltip(null);
-                                                                            }}
-                                                                        >
-                                                                            Speichern
-                                                                        </button>
+                                                                        {result.size_mb && (
+                                                                            <div className="flex justify-between">
+                                                                                <span className="font-semibold">Größe:</span>
+                                                                                <span>{parseFloat(result.size_mb).toFixed(2)} MB</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {result.duration_minutes && (
+                                                                            <div className="flex justify-between">
+                                                                                <span className="font-semibold">Dauer:</span>
+                                                                                <span>{result.duration_minutes} min</span>
+                                                                            </div>
+                                                                        )}
                                                                     </div>
+                                                                ))}
+                                                                <div className="pt-2">
+                                                                    <textarea
+                                                                        className="w-full p-2 text-sm border rounded"
+                                                                        value={noteText || groupedResult.results[0].note || ''}
+                                                                        onChange={(e) => setNoteText(e.target.value)}
+                                                                        placeholder="Notiz..."
+                                                                    />
+                                                                    <button 
+                                                                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                                        onClick={() => {
+                                                                            saveNote(groupedResult.results[0].id, noteText);
+                                                                            setIsTooltipLocked(false);
+                                                                            setActiveTooltip(null);
+                                                                        }}
+                                                                    >
+                                                                        Speichern
+                                                                    </button>
                                                                 </div>
                                                             </div>
                                                         )}
