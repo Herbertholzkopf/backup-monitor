@@ -168,7 +168,7 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
             const [error, setError] = React.useState(null);
             const [activeTooltip, setActiveTooltip] = React.useState(null);
             const [isTooltipLocked, setIsTooltipLocked] = React.useState(false);
-            const [noteText, setNoteText] = React.useState('');
+            const [notesTexts, setNotesTexts] = React.useState({});
 
             const groupResultsByDate = (results) => {
                 const grouped = {};
@@ -257,6 +257,13 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                 } catch (error) {
                     console.error('Error saving note:', error);
                 }
+            };
+
+            const handleNoteChange = (resultId, text) => {
+                setNotesTexts(prev => ({
+                    ...prev,
+                    [resultId]: text
+                }));
             };
 
             React.useEffect(() => {
@@ -409,26 +416,24 @@ if (strpos($requestUri, '/api/backup-results/note') === 0) {
                                                                                 <span>{result.duration_minutes} min</span>
                                                                             </div>
                                                                         )}
+                                                                        <div className="pt-2">
+                                                                            <textarea
+                                                                                className="w-full p-2 text-sm border rounded"
+                                                                                value={notesTexts[result.id] || result.note || ''}
+                                                                                onChange={(e) => handleNoteChange(result.id, e.target.value)}
+                                                                                placeholder="Notiz..."
+                                                                            />
+                                                                            <button 
+                                                                                className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+                                                                                onClick={() => {
+                                                                                    saveNote(result.id, notesTexts[result.id]);
+                                                                                }}
+                                                                            >
+                                                                                Speichern
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 ))}
-                                                                <div className="pt-2">
-                                                                    <textarea
-                                                                        className="w-full p-2 text-sm border rounded"
-                                                                        value={noteText || groupedResult.results[0].note || ''}
-                                                                        onChange={(e) => setNoteText(e.target.value)}
-                                                                        placeholder="Notiz..."
-                                                                    />
-                                                                    <button 
-                                                                        className="mt-2 px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-                                                                        onClick={() => {
-                                                                            saveNote(groupedResult.results[0].id, noteText);
-                                                                            setIsTooltipLocked(false);
-                                                                            setActiveTooltip(null);
-                                                                        }}
-                                                                    >
-                                                                        Speichern
-                                                                    </button>
-                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
