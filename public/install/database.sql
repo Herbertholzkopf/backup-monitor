@@ -72,7 +72,7 @@ INSERT INTO backup_jobs (name, customer_id, backup_type_id, email) VALUES
     ('Exchange Online', 1, 5, 'cloud@musterfirma.de');
 
 INSERT INTO backup_results (backup_job_id, status, date, time, note, size_mb, duration_minutes) VALUES 
-    (1, 'success', CURDATE(), '22:15:00', 'Erfolgreiches Backup', 1024.50, 45),
-    (1, 'warning', DATE_SUB(CURDATE(), INTERVAL 1 DAY), '22:15:00', 'Warnung: Große Änderungen', 1124.75, 52),
-    (1, 'success', DATE_SUB(CURDATE(), INTERVAL 2 DAY), '22:15:00', 'Erfolgreiches Backup', 1018.25, 43),
-    (1, 'success', DATE_SUB(CURDATE(), INTERVAL 3 DAY), '22:15:00', 'Erfolgreiches Backup', 1015.75, 44);
+    (1, 'success', CURDATE(), '22:19:00', 'Erfolgreiches Backup', 1024.50, 45),
+    (1, 'warning', DATE_SUB(CURDATE(), INTERVAL 1 DAY), '21:46:00', 'Warnung: Große Änderungen', 1124.75, 52),
+    (1, 'success', DATE_SUB(CURDATE(), INTERVAL 2 DAY), '22:17:00', 'Erfolgreiches Backup', 1018.25, 43),
+    (1, 'success', DATE_SUB(CURDATE(), INTERVAL 2 DAY), '22:15:00', 'Erfolgreiches Backup', 1015.75, 44);
