@@ -119,26 +119,28 @@ server {
     # Hauptrouting für die Frontend-Anwendung
     location / {
         try_files $uri $uri/ /index.php?$query_string;
+
+        location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+        }
     }
 
     # Spezielles Routing für die Settings-API
-    location /settings/api/ {
+    location ^~ /settings/api/ {
+        alias /var/www/backup-monitor/public/settings/api/;
         try_files $uri $uri/ /settings/api/index.php?$query_string;
+
+        location ~ \.php$ {
+            include snippets/fastcgi-php.conf;
+            fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
+            
+            # Wichtig: Korrekter Pfad für API-Anfragen
+            fastcgi_param SCRIPT_FILENAME $request_filename;
+        }
     }
 
-    # PHP-Verarbeitung
-    location ~ \.php$ {
-        fastcgi_split_path_info ^(.+\.php)(/.+)$;
-        include snippets/fastcgi-php.conf;
-        fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
-        include fastcgi_params;
-    }
-
-    location ~ /\.ht {
-        deny all;
-    }
-
+    # Verhindern des Zugriffs auf versteckte Dateien
     location ~ /\. {
         deny all;
     }
