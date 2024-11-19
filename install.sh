@@ -116,14 +116,22 @@ server {
     root /var/www/backup-monitor/public;
     index index.php;
 
+    # Hauptrouting für die Frontend-Anwendung
     location / {
-        try_files \$uri \$uri/ /index.php?\$args;
+        try_files $uri $uri/ /index.php?$query_string;
     }
 
+    # Spezielles Routing für die Settings-API
+    location /settings/api/ {
+        try_files $uri $uri/ /settings/api/index.php?$query_string;
+    }
+
+    # PHP-Verarbeitung
     location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
         include snippets/fastcgi-php.conf;
         fastcgi_pass unix:/var/run/php/php8.2-fpm.sock;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
         include fastcgi_params;
     }
 
