@@ -1,73 +1,3 @@
-<?php
-// /public/settings/index.php
-
-// Fehleranzeige für Entwicklung
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
-error_reporting(E_ALL);
-
-// Verbesserte URL-Verarbeitung
-$requestUri = $_SERVER['REQUEST_URI'];
-error_log("Original Request URI: " . $requestUri);
-
-// Entferne eventuelles /settings vom Anfang
-if (strpos($requestUri, '/settings') === 0) {
-    $requestUri = substr($requestUri, strlen('/settings'));
-}
-error_log("Modified Request URI: " . $requestUri);
-
-// Wenn es ein API-Request ist
-if (strpos($requestUri, '/api/settings') === 0) {
-    error_log("Processing API request: " . $requestUri);
-    
-    require_once __DIR__ . '/../../vendor/autoload.php';
-    $config = require_once __DIR__ . '/../../config/database.php';
-    
-    header('Content-Type: application/json');
-    
-    // Datenbankverbindung
-    try {
-        $db = new PDO(
-            "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
-            $config['username'],
-            $config['password']
-        );
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        
-        // Router initialisieren
-        $router = new \App\Router($db);
-        
-        // Routes definieren
-        $router->addRoute('GET', '/api/settings/customers', 'SettingsController', 'getCustomers');
-        $router->addRoute('POST', '/api/settings/customers', 'SettingsController', 'createCustomer');
-        $router->addRoute('PUT', '/api/settings/customers/{id}', 'SettingsController', 'updateCustomer');
-        $router->addRoute('DELETE', '/api/settings/customers/{id}', 'SettingsController', 'deleteCustomer');
-
-        $router->addRoute('GET', '/api/settings/backup-jobs', 'SettingsController', 'getBackupJobs');
-        $router->addRoute('POST', '/api/settings/backup-jobs', 'SettingsController', 'createBackupJob');
-        $router->addRoute('PUT', '/api/settings/backup-jobs/{id}', 'SettingsController', 'updateBackupJob');
-        $router->addRoute('DELETE', '/api/settings/backup-jobs/{id}', 'SettingsController', 'deleteBackupJob');
-
-        $router->addRoute('GET', '/api/settings/backup-types', 'SettingsController', 'getBackupTypes');
-
-        $router->addRoute('GET', '/api/settings/mail', 'SettingsController', 'getMailSettings');
-        $router->addRoute('POST', '/api/settings/mail', 'SettingsController', 'updateMailSettings');
-
-        // Request verarbeiten
-        $router->handleRequest();
-    } catch (Exception $e) {
-        error_log("API Error: " . $e->getMessage());
-        http_response_code(500);
-        echo json_encode([
-            'success' => false,
-            'error' => $e->getMessage()
-        ]);
-    }
-    exit;
-}
-
-
-?>
 <!DOCTYPE html>
 <html lang="de">
 <head>
@@ -85,28 +15,37 @@ if (strpos($requestUri, '/api/settings') === 0) {
     <script type="text/babel">
         // Hilfsfunktion für API-Aufrufe
         const api = {
-            baseUrl: '/api/settings',
+            baseUrl: '/settings/api',
             
             async request(endpoint, options = {}) {
-                const url = this.baseUrl + endpoint;
-                console.log('API Request:', url, options);
+                const url = `${this.baseUrl}${endpoint}`;
+                console.log('Making API request to:', url);
                 
-                const response = await fetch(url, {
-                    ...options,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...options.headers,
-                    },
-                });
-                
-                const data = await response.json();
-                console.log('API Response:', data);
-                
-                if (!response.ok) {
-                    throw new Error(data.error || 'API Error');
+                try {
+                    const response = await fetch(url, {
+                        ...options,
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            ...options.headers,
+                        },
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        throw new Error(`Expected JSON response but got ${contentType}`);
+                    }
+                    
+                    const data = await response.json();
+                    return data;
+                } catch (err) {
+                    console.error('Request failed:', err);
+                    throw err;
                 }
-                
-                return data;
             },
             
             async get(endpoint) {
