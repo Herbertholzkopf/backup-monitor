@@ -6,40 +6,63 @@ ini_set('display_errors', 1);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
+// Verbesserte URL-Verarbeitung
+$requestUri = $_SERVER['REQUEST_URI'];
+error_log("Original Request URI: " . $requestUri);
+
+// Entferne eventuelles /settings vom Anfang
+if (strpos($requestUri, '/settings') === 0) {
+    $requestUri = substr($requestUri, strlen('/settings'));
+}
+error_log("Modified Request URI: " . $requestUri);
+
 // Wenn es ein API-Request ist
-if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
+if (strpos($requestUri, '/api/settings') === 0) {
+    error_log("Processing API request: " . $requestUri);
+    
     require_once __DIR__ . '/../../vendor/autoload.php';
     $config = require_once __DIR__ . '/../../config/database.php';
     
+    header('Content-Type: application/json');
+    
     // Datenbankverbindung
-    $db = new PDO(
-        "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
-        $config['username'],
-        $config['password']
-    );
-    $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-    
-    // Router initialisieren
-    $router = new \App\Router($db);
-    
-    // Routes definieren
-    $router->addRoute('GET', '/api/settings/customers', 'SettingsController', 'getCustomers');
-    $router->addRoute('POST', '/api/settings/customers', 'SettingsController', 'createCustomer');
-    $router->addRoute('PUT', '/api/settings/customers/{id}', 'SettingsController', 'updateCustomer');
-    $router->addRoute('DELETE', '/api/settings/customers/{id}', 'SettingsController', 'deleteCustomer');
+    try {
+        $db = new PDO(
+            "mysql:host={$config['host']};dbname={$config['database']};charset=utf8mb4",
+            $config['username'],
+            $config['password']
+        );
+        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        
+        // Router initialisieren
+        $router = new \App\Router($db);
+        
+        // Routes definieren
+        $router->addRoute('GET', '/api/settings/customers', 'SettingsController', 'getCustomers');
+        $router->addRoute('POST', '/api/settings/customers', 'SettingsController', 'createCustomer');
+        $router->addRoute('PUT', '/api/settings/customers/{id}', 'SettingsController', 'updateCustomer');
+        $router->addRoute('DELETE', '/api/settings/customers/{id}', 'SettingsController', 'deleteCustomer');
 
-    $router->addRoute('GET', '/api/settings/backup-jobs', 'SettingsController', 'getBackupJobs');
-    $router->addRoute('POST', '/api/settings/backup-jobs', 'SettingsController', 'createBackupJob');
-    $router->addRoute('PUT', '/api/settings/backup-jobs/{id}', 'SettingsController', 'updateBackupJob');
-    $router->addRoute('DELETE', '/api/settings/backup-jobs/{id}', 'SettingsController', 'deleteBackupJob');
+        $router->addRoute('GET', '/api/settings/backup-jobs', 'SettingsController', 'getBackupJobs');
+        $router->addRoute('POST', '/api/settings/backup-jobs', 'SettingsController', 'createBackupJob');
+        $router->addRoute('PUT', '/api/settings/backup-jobs/{id}', 'SettingsController', 'updateBackupJob');
+        $router->addRoute('DELETE', '/api/settings/backup-jobs/{id}', 'SettingsController', 'deleteBackupJob');
 
-    $router->addRoute('GET', '/api/settings/backup-types', 'SettingsController', 'getBackupTypes');
+        $router->addRoute('GET', '/api/settings/backup-types', 'SettingsController', 'getBackupTypes');
 
-    $router->addRoute('GET', '/api/settings/mail', 'SettingsController', 'getMailSettings');
-    $router->addRoute('POST', '/api/settings/mail', 'SettingsController', 'updateMailSettings');
+        $router->addRoute('GET', '/api/settings/mail', 'SettingsController', 'getMailSettings');
+        $router->addRoute('POST', '/api/settings/mail', 'SettingsController', 'updateMailSettings');
 
-    // Request verarbeiten
-    $router->handleRequest();
+        // Request verarbeiten
+        $router->handleRequest();
+    } catch (Exception $e) {
+        error_log("API Error: " . $e->getMessage());
+        http_response_code(500);
+        echo json_encode([
+            'success' => false,
+            'error' => $e->getMessage()
+        ]);
+    }
     exit;
 }
 
@@ -60,10 +83,46 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
     <div id="root"></div>
     
     <script type="text/babel">
+        // Hilfsfunktion für API-Aufrufe
+        const api = {
+            baseUrl: '/api/settings',
+            
+            async request(endpoint, options = {}) {
+                const url = this.baseUrl + endpoint;
+                console.log('API Request:', url, options);
+                
+                const response = await fetch(url, {
+                    ...options,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...options.headers,
+                    },
+                });
+                
+                const data = await response.json();
+                console.log('API Response:', data);
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'API Error');
+                }
+                
+                return data;
+            },
+            
+            async get(endpoint) {
+                return this.request(endpoint);
+            },
+            
+            async post(endpoint, body) {
+                return this.request(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify(body),
+                });
+            }
+        };
+
         const Settings = () => {
             const [activeTab, setActiveTab] = React.useState('mail');
-            const [loading, setLoading] = React.useState(false);
-            const [error, setError] = React.useState(null);
 
             // Navigation Items
             const navItems = [
@@ -72,20 +131,7 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                 { id: 'backup-jobs', label: 'Backup-Jobs', icon: '💾' }
             ];
 
-            // Komponenten für die verschiedenen Tabs
-            const renderContent = () => {
-                switch (activeTab) {
-                    case 'mail':
-                        return <MailSetup />;
-                    case 'customers':
-                        return <Customers />;
-                    case 'backup-jobs':
-                        return <BackupJobs />;
-                    default:
-                        return <div>404 - Tab nicht gefunden</div>;
-                }
-            };
-
+            // Mail Setup Komponente
             const MailSetup = () => {
                 const [formData, setFormData] = React.useState({
                     server: '',
@@ -104,19 +150,14 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                 React.useEffect(() => {
                     const fetchSettings = async () => {
                         try {
-                            const response = await fetch('/api/settings/mail');
-                            const data = await response.json();
-                            
-                            if (data.success) {
-                                setFormData(prevData => ({
-                                    ...prevData,
-                                    ...data.data
-                                }));
-                            } else {
-                                setError(data.error || 'Fehler beim Laden der Einstellungen');
-                            }
+                            setError(null);
+                            const data = await api.get('/mail');
+                            setFormData(prev => ({
+                                ...prev,
+                                ...data.data
+                            }));
                         } catch (err) {
-                            setError('Fehler beim Laden der Einstellungen');
+                            setError(`Fehler beim Laden der Einstellungen: ${err.message}`);
                         } finally {
                             setLoading(false);
                         }
@@ -125,14 +166,6 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                     fetchSettings();
                 }, []);
 
-                const handleChange = (e) => {
-                    const { name, value } = e.target;
-                    setFormData(prev => ({
-                        ...prev,
-                        [name]: value
-                    }));
-                };
-
                 const handleSubmit = async (e) => {
                     e.preventDefault();
                     setSaving(true);
@@ -140,26 +173,21 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                     setSuccessMessage(null);
 
                     try {
-                        const response = await fetch('/api/settings/mail', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify(formData)
-                        });
-
-                        const data = await response.json();
-
-                        if (data.success) {
-                            setSuccessMessage('Mail-Einstellungen erfolgreich gespeichert!');
-                        } else {
-                            setError(data.error || 'Fehler beim Speichern der Einstellungen');
-                        }
+                        await api.post('/mail', formData);
+                        setSuccessMessage('Mail-Einstellungen erfolgreich gespeichert!');
                     } catch (err) {
-                        setError('Fehler beim Speichern der Einstellungen');
+                        setError(`Fehler beim Speichern der Einstellungen: ${err.message}`);
                     } finally {
                         setSaving(false);
                     }
+                };
+
+                const handleChange = (e) => {
+                    const { name, value } = e.target;
+                    setFormData(prev => ({
+                        ...prev,
+                        [name]: value
+                    }));
                 };
 
                 if (loading) {
@@ -197,7 +225,7 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                                         name="server"
                                         value={formData.server}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                                         required
                                     />
                                 </div>
@@ -209,7 +237,7 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                                         name="port"
                                         value={formData.port}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                                         required
                                     />
                                 </div>
@@ -220,7 +248,7 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                                         name="protocol"
                                         value={formData.protocol}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                                     >
                                         <option value="imap">IMAP</option>
                                         <option value="pop3">POP3</option>
@@ -233,7 +261,7 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                                         name="encryption"
                                         value={formData.encryption}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                                     >
                                         <option value="ssl">SSL</option>
                                         <option value="tls">TLS</option>
@@ -247,7 +275,7 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                                         name="username"
                                         value={formData.username}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                                         required
                                     />
                                 </div>
@@ -259,7 +287,7 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
                                         name="password"
                                         value={formData.password}
                                         onChange={handleChange}
-                                        className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                        className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 p-2"
                                         required
                                     />
                                 </div>
@@ -396,7 +424,9 @@ if (strpos($_SERVER['REQUEST_URI'], '/api/settings') === 0) {
 
                             {/* Content */}
                             <div className="flex-1 bg-white rounded-lg shadow">
-                                {renderContent()}
+                                {activeTab === 'mail' && <MailSetup />}
+                                {activeTab === 'customers' && <Customers />}
+                                {activeTab === 'backup-jobs' && <BackupJobs />}
                             </div>
                         </div>
                     </div>
